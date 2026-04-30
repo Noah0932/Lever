@@ -1,0 +1,111 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+def mcTarget = (project.findProperty('mcTarget') ?: '1.21.1').toString()
+def targetFile = file("versions/${mcTarget}.properties")
+if (!targetFile.exists()) {
+    throw new GradleException("Unknown Minecraft target '${mcTarget}'. Add versions/${mcTarget}.properties first.")
+}
+
+def target = new Properties()
+targetFile.withInputStream { target.load(it) }
+def targetProp = { String key ->
+    def value = target.getProperty(key)
+    if (value == null) throw new GradleException("Missing '${key}' in ${targetFile}")
+    value
+}
+
+def supportState = target.getProperty('support_state', 'unknown')
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = "${project.archives_base_name}-${mcTarget}"
+}
+
+repositories {
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${targetProp('minecraft_version')}"
+    if (targetProp('mappings_mode') == 'yarn') {
+        mappings "net.fabricmc:yarn:${targetProp('yarn_mappings')}:v2"
+    }
+    modImplementation "net.fabricmc:fabric-loader:${targetProp('loader_version')}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${targetProp('fabric_api_version')}"
+    implementation "com.knuddels:jtokkit:${project.jtokkit_version}"
+    include "com.knuddels:jtokkit:${project.jtokkit_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.11.3"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.11.3"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.11.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.11.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-console-standalone:1.11.3"
+}
+
+test {
+    useJUnitPlatform()
+    enabled = false
+}
+
+tasks.register('testJava', JavaExec) {
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set('org.junit.platform.console.ConsoleLauncher')
+    args = ['--scan-classpath', '--details=tree', '--reports-dir=' + layout.buildDirectory.dir('test-results/java').get().asFile.absolutePath]
+}
+
+check.dependsOn testJava
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_dependency", targetProp('minecraft_dependency')
+    inputs.property "java_dependency", ">=${targetProp('java_release')}"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_dependency": targetProp('minecraft_dependency'),
+                "java_dependency": ">=${targetProp('java_release')}"
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = targetProp('java_release') as int
+    it.doFirst {
+        if (target.getProperty('requires_source_port', 'false') == 'true' && !project.hasProperty('allowExperimentalTarget')) {
+            throw new GradleException("Target ${mcTarget} is registered but not source-compatible yet (${supportState}). Build the stable 1.21.1 target, or pass -PallowExperimentalTarget only after adding a source-set/adapter for this target.")
+        }
+        if (target.getProperty('requires_mojang_port', 'false') == 'true' && !project.hasProperty('allowExperimental26')) {
+            throw new GradleException("Target ${mcTarget} requires Java ${targetProp('java_release')} and a Mojang-name source port. Use the 1.21.1 target now, or run with -PallowExperimental26 after porting src/main/java to the 26.1.x API.")
+        }
+    }
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(targetProp('java_release'))
+    targetCompatibility = JavaVersion.toVersion(targetProp('java_release'))
+}
+
+tasks.register('printTargetInfo') {
+    group = 'minecraftagent'
+    description = 'Prints the selected Minecraft target profile.'
+    doLast {
+        println "Minecraft target: ${mcTarget}"
+        println "Minecraft version: ${targetProp('minecraft_version')}"
+        println "Fabric API: ${targetProp('fabric_api_version')}"
+        println "Java release: ${targetProp('java_release')}"
+        println "Mappings mode: ${targetProp('mappings_mode')}"
+        println "Minecraft dependency: ${targetProp('minecraft_dependency')}"
+        println "Support state: ${supportState}"
+    }
+}
+
+jar {
+    inputs.property "archivesName", project.base.archivesName
+    from("LICENSE") {
+        rename { "${it}_${inputs.properties.archivesName}" }
+    }
+}

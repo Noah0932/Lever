@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "minecraftagent",
+  "version": "${version}",
+  "name": "Minecraft AI Agent",
+  "description": "OpenAI-compatible multimodal Minecraft AI agent with streaming, routing, cache, billing and safe server execution.",
+  "authors": ["Noah"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.noah.minecraftagent.MinecraftAgentMod"],
+    "client": ["com.noah.minecraftagent.client.MinecraftAgentClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${minecraft_dependency}",
+    "java": "${java_dependency}",
+    "fabric-api": "*"
+  }
+}

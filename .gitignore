@@ -1,0 +1,7 @@
+.gradle/
+build/
+run/
+out/
+.gradle-local/
+gradle-*-bin.zip
+*.log
