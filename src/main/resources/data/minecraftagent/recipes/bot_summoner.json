@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "OGO",
+    "RDR",
+    "III"
+  ],
+  "key": {
+    "O": { "item": "minecraft:obsidian" },
+    "G": { "item": "minecraft:gold_block" },
+    "R": { "item": "minecraft:redstone_block" },
+    "D": { "item": "minecraft:diamond" },
+    "I": { "item": "minecraft:iron_block" }
+  },
+  "result": {
+    "id": "minecraftagent:bot_summoner",
+    "count": 1
+  }
+}

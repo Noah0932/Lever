@@ -1,8 +1,14 @@
 package com.noah.minecraftagent.client;
 
+import com.noah.minecraftagent.client.bot.BotChatScreen;
+import com.noah.minecraftagent.client.bot.BotInventoryScreen;
 import com.noah.minecraftagent.client.ui.AgentConfigScreen;
 import com.noah.minecraftagent.client.ui.DelegationConfirmScreen;
 import com.noah.minecraftagent.client.ui.SpotlightScreen;
+import com.noah.minecraftagent.common.bot.BotNetworking;
+import com.noah.minecraftagent.common.bot.BotProfile;
+import com.noah.minecraftagent.common.bot.payload.BotListPayload;
+import com.noah.minecraftagent.common.bot.payload.BotMessagePayload;
 import com.noah.minecraftagent.common.config.AgentConfig;
 import com.noah.minecraftagent.common.config.AgentConfigStore;
 import com.noah.minecraftagent.common.network.AgentNetworking;
@@ -21,22 +27,36 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class MinecraftAgentClient implements ClientModInitializer {
     private final AgentRuntime runtime = new AgentRuntime();
     private KeyBinding configKey;
     private KeyBinding spotlightKey;
+    private KeyBinding botChatKey;
+    private BotChatScreen botChatScreen;
+    private final List<BotProfile> knownBots = new ArrayList<>();
 
     @Override
     public void onInitializeClient() {
         AgentNetworking.registerPayloads();
+        BotNetworking.registerPayloads();
         configKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.minecraftagent.config", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, "category.minecraftagent"));
         spotlightKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.minecraftagent.spotlight", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.minecraftagent"));
+        botChatKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.minecraftagent.botchat", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.minecraftagent"));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (configKey.wasPressed()) {
                 client.setScreen(AgentConfigScreen.create(client.currentScreen));
             }
             while (spotlightKey.wasPressed()) {
                 client.setScreen(new SpotlightScreen(runtime));
+            }
+            while (botChatKey.wasPressed()) {
+                if (botChatScreen == null) {
+                    botChatScreen = new BotChatScreen(knownBots);
+                }
+                client.setScreen(botChatScreen);
             }
         });
         ClientSendMessageEvents.ALLOW_CHAT.register(this::handleLocalAiChat);
@@ -47,6 +67,27 @@ public final class MinecraftAgentClient implements ClientModInitializer {
         }));
         ClientPlayNetworking.registerGlobalReceiver(AgentPromptRequestPayload.ID, (payload, context) -> context.client().execute(() -> handlePromptRequest(payload)));
         ClientPlayNetworking.registerGlobalReceiver(DelegateConfigPayload.ID, (payload, context) -> context.client().execute(() -> handleDelegateConfig(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(BotListPayload.ID, (payload, context) -> context.client().execute(() -> handleBotList(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(BotMessagePayload.ID, (payload, context) -> context.client().execute(() -> handleBotMessage(payload)));
+    }
+
+    private void handleBotList(BotListPayload payload) {
+        knownBots.clear();
+        for (int i = 0; i < payload.botUuids().size(); i++) {
+            BotProfile profile = new BotProfile();
+            profile.id = payload.botUuids().get(i);
+            profile.name = payload.botNames().get(i);
+            knownBots.add(profile);
+        }
+    }
+
+    private void handleBotMessage(BotMessagePayload payload) {
+        if (MinecraftClient.getInstance().player != null) {
+            MinecraftClient.getInstance().player.sendMessage(Text.literal("[Bot] " + payload.botName() + ": " + payload.message()), false);
+        }
+        if (botChatScreen != null) {
+            botChatScreen.addMessage(payload.botName() + ": " + payload.message());
+        }
     }
 
     private boolean handleLocalAiChat(String message) {

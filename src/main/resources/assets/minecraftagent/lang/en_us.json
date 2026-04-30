@@ -1,7 +1,9 @@
 {
   "key.minecraftagent.config": "Open AI Agent Management",
   "key.minecraftagent.spotlight": "Open AI Agent Spotlight",
-  "category.minecraftagent": "Minecraft AI Agent",
+  "key.minecraftagent.botchat": "Open Bot Chat Panel",
+  "category.minecraftagent": "Lever - Lever",
+  "item.minecraftagent.bot_summoner": "Bot Summoner",
   "screen.minecraftagent.config.title": "Minecraft AI Agent Management",
   "screen.minecraftagent.spotlight.title": "AI Agent Spotlight",
   "screen.minecraftagent.delegate.title": "AI Delegation Request",

@@ -1,7 +1,9 @@
 {
   "key.minecraftagent.config": "打开 AI Agent 管理",
   "key.minecraftagent.spotlight": "打开 AI Agent 输入框",
-  "category.minecraftagent": "Minecraft AI Agent",
+  "key.minecraftagent.botchat": "打开 Bot 聊天面板",
+  "category.minecraftagent": "Lever - 智械",
+  "item.minecraftagent.bot_summoner": "Bot 召唤器",
   "screen.minecraftagent.config.title": "Minecraft AI Agent 管理",
   "screen.minecraftagent.spotlight.title": "AI Agent 快速输入",
   "screen.minecraftagent.delegate.title": "AI 代发请求",
