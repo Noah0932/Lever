@@ -95,8 +95,8 @@ public final class AgentRuntime {
                 }
 
                 String currentObservation = observation;
-                String contextJson = runOnClient(() -> contextCollector.collectJson(currentObservation)).join();
                 ScreenshotCapture.CapturedScreenshot screenshot = captureIfEnabled(profile).join();
+                String contextJson = runOnClient(() -> contextCollector.collectJson(currentObservation)).join();
                 ChatRequest request = buildRequest(profile, goal, contextJson, screenshot, observation, step);
                 String cacheKey = cacheKey(request, goal, contextJson);
                 if (profile.cacheEnabled && canReadResponseCache(profile)) {

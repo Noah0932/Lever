@@ -61,7 +61,6 @@ public final class AgentConfigStore {
                 }
             }
             config.activeProfile();
-            save();
         } catch (IOException exception) {
             SecureLog.error("Failed to load AI agent config", exception);
         }
@@ -69,6 +68,32 @@ public final class AgentConfigStore {
 
     public synchronized void save() {
         try {
+            AgentProfile active = config.activeProfile();
+            if (active != null && active.apiKey.isBlank()) {
+                Path bak = configDir.resolve("config.json.bak");
+                if (Files.exists(bak)) {
+                    String bakRaw = Files.readString(bak, StandardCharsets.UTF_8);
+                    AgentConfig bakConfig = gson.fromJson(bakRaw, AgentConfig.class);
+                    if (bakConfig != null) {
+                        AgentProfile bakActive = bakConfig.activeProfile();
+                        if (bakActive != null && !bakActive.apiKey.isBlank()) {
+                            SecureLog.warn("Refusing to save config with blank API key while backup has a valid key");
+                            return;
+                        }
+                    }
+                }
+                if (Files.exists(configFile)) {
+                    String existingRaw = Files.readString(configFile, StandardCharsets.UTF_8);
+                    AgentConfig existingConfig = gson.fromJson(existingRaw, AgentConfig.class);
+                    if (existingConfig != null) {
+                        AgentProfile existingActive = existingConfig.activeProfile();
+                        if (existingActive != null && !existingActive.apiKey.isBlank()) {
+                            SecureLog.warn("Refusing to overwrite existing valid API key with blank value");
+                            return;
+                        }
+                    }
+                }
+            }
             Files.createDirectories(configDir);
             String json = gson.toJson(config);
             if (Files.exists(configFile)) {
