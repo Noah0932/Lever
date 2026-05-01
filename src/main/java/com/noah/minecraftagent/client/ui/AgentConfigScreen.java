@@ -4,9 +4,11 @@ import com.noah.minecraftagent.MinecraftAgentMod;
 import com.noah.minecraftagent.common.config.AgentConfig;
 import com.noah.minecraftagent.common.config.AgentConfigStore;
 import com.noah.minecraftagent.common.config.AgentProfile;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
@@ -18,10 +20,9 @@ import java.util.function.Consumer;
 public final class AgentConfigScreen extends Screen {
     private final Screen parent;
     private final AgentConfig config;
-    private final List<FieldBinding> fields = new ArrayList<>();
-    private final List<SectionAnchor> sections = new ArrayList<>();
     private AgentProfile profile;
-    private int scrollOffset;
+    private ConfigListWidget listWidget;
+    private final List<TextFieldPool> pool = new ArrayList<>();
 
     public AgentConfigScreen(Screen parent) {
         super(Text.translatable("screen.minecraftagent.config.title"));
@@ -36,177 +37,198 @@ public final class AgentConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        fields.clear();
-        sections.clear();
-        int panelWidth = Math.min(760, width - 40);
-        int x = (width - panelWidth) / 2;
-        int fieldX = x + 180;
-        int fieldWidth = panelWidth - 200;
-        int y = 42;
+        pool.clear();
+        int listTop = 34;
+        int listBottom = height - 6;
+        int listWidth = Math.min(460, width - 16);
 
-        y = addSection("section.minecraftagent.profile", x, fieldX, fieldWidth, y);
-        addField("field.minecraftagent.name", profile.name, fieldX, y, value -> profile.name = value); y += 24;
-        addField("field.minecraftagent.base_url", profile.baseUrl, fieldX, y, value -> profile.baseUrl = value); y += 24;
-        addField("field.minecraftagent.api_key", profile.apiKey, fieldX, y, value -> profile.apiKey = value); y += 24;
-        addField("field.minecraftagent.model", profile.model, fieldX, y, value -> profile.model = value); y += 24;
-        addField("field.minecraftagent.system_prompt", profile.systemPrompt, fieldX, y, value -> profile.systemPrompt = value); y += 24;
-        addField("field.minecraftagent.http_proxy", profile.httpProxy, fieldX, y, value -> profile.httpProxy = value); y += 30;
+        listWidget = new ConfigListWidget(client, listWidth, listTop, listBottom, 24);
+        listWidget.setX((width - listWidth) / 2);
+        addDrawableChild(listWidget);
 
-        y = addSection("section.minecraftagent.runtime", x, fieldX, fieldWidth, y);
-        addField("field.minecraftagent.temperature", Double.toString(profile.temperature), fieldX, y, value -> profile.temperature = parseDouble(value, profile.temperature)); y += 24;
-        addField("field.minecraftagent.max_tokens", Integer.toString(profile.maxTokens), fieldX, y, value -> profile.maxTokens = parseInt(value, profile.maxTokens)); y += 24;
-        addField("field.minecraftagent.max_steps", Integer.toString(profile.maxAgentSteps), fieldX, y, value -> profile.maxAgentSteps = parseInt(value, profile.maxAgentSteps)); y += 24;
-        addField("field.minecraftagent.chat_prefix", config.chatPrefix, fieldX, y, value -> config.chatPrefix = value); y += 30;
+        addSection("section.minecraftagent.profile");
+        addF("field.minecraftagent.name", profile.name, v -> profile.name = v);
+        addF("field.minecraftagent.base_url", profile.baseUrl, v -> profile.baseUrl = v);
+        addF("field.minecraftagent.api_key", profile.apiKey, v -> profile.apiKey = v);
+        addF("field.minecraftagent.model", profile.model, v -> profile.model = v);
+        addF("field.minecraftagent.system_prompt", profile.systemPrompt, v -> profile.systemPrompt = v);
+        addF("field.minecraftagent.http_proxy", profile.httpProxy, v -> profile.httpProxy = v);
 
-        y = addSection("section.minecraftagent.billing", x, fieldX, fieldWidth, y);
-        addField("field.minecraftagent.input_price", Double.toString(profile.inputUsdPerMillion), fieldX, y, value -> profile.inputUsdPerMillion = parseDouble(value, profile.inputUsdPerMillion)); y += 24;
-        addField("field.minecraftagent.output_price", Double.toString(profile.outputUsdPerMillion), fieldX, y, value -> profile.outputUsdPerMillion = parseDouble(value, profile.outputUsdPerMillion)); y += 24;
-        addField("field.minecraftagent.exchange", Double.toString(profile.usdToCny), fieldX, y, value -> profile.usdToCny = parseDouble(value, profile.usdToCny)); y += 24;
-        addField("field.minecraftagent.daily_limit", Double.toString(profile.dailyLimitCny), fieldX, y, value -> profile.dailyLimitCny = parseDouble(value, profile.dailyLimitCny)); y += 30;
+        addSection("section.minecraftagent.runtime");
+        addF("field.minecraftagent.temperature", d2s(profile.temperature), v -> profile.temperature = pDouble(v, profile.temperature));
+        addF("field.minecraftagent.max_tokens", i2s(profile.maxTokens), v -> profile.maxTokens = pInt(v, profile.maxTokens));
+        addF("field.minecraftagent.max_steps", i2s(profile.maxAgentSteps), v -> profile.maxAgentSteps = pInt(v, profile.maxAgentSteps));
+        addF("field.minecraftagent.chat_prefix", config.chatPrefix, v -> config.chatPrefix = v);
 
-        int toggleY = y;
-        int gap = 116;
-        for (int row = 0; row < 2; row++) {
-            int bx = x + 14;
-            for (int col = 0; col < 3; col++) {
-                int idx = row * 3 + col;
-                if (idx >= 6) break;
-                addToggle(idx, bx, toggleY + row * 24);
-                bx += gap;
-            }
-        }
-        y = toggleY + 52;
+        addSection("section.minecraftagent.billing");
+        addF("field.minecraftagent.input_price", d2s(profile.inputUsdPerMillion), v -> profile.inputUsdPerMillion = pDouble(v, profile.inputUsdPerMillion));
+        addF("field.minecraftagent.output_price", d2s(profile.outputUsdPerMillion), v -> profile.outputUsdPerMillion = pDouble(v, profile.outputUsdPerMillion));
+        addF("field.minecraftagent.exchange", d2s(profile.usdToCny), v -> profile.usdToCny = pDouble(v, profile.usdToCny));
+        addF("field.minecraftagent.daily_limit", d2s(profile.dailyLimitCny), v -> profile.dailyLimitCny = pDouble(v, profile.dailyLimitCny));
 
-        addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.new_profile"), button -> {
-            saveFields();
-            AgentProfile next = new AgentProfile();
-            next.id = UUID.randomUUID().toString();
-            config.profiles.add(next);
-            config.activeProfileId = next.id;
-            profile = next;
-            clearAndInit();
-        }).dimensions(x + 14, y, 112, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.next_profile"), button -> {
-            saveFields();
-            int index = Math.max(0, config.profiles.indexOf(profile));
-            profile = config.profiles.get((index + 1) % config.profiles.size());
-            config.activeProfileId = profile.id;
-            clearAndInit();
-        }).dimensions(x + 134, y, 112, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.delete_profile"), button -> {
-            if (config.profiles.size() > 1) {
-                config.profiles.remove(profile);
-                profile = config.profiles.get(0);
-                config.activeProfileId = profile.id;
-                clearAndInit();
-            }
-        }).dimensions(x + 254, y, 112, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.save"), button -> {
-            saveFields();
-            AgentConfigStore.getInstance().save();
-            close();
-        }).dimensions(x + panelWidth - 216, y, 98, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.cancel"), button -> close()).dimensions(x + panelWidth - 110, y, 96, 20).build());
+        listWidget.addEntry(listWidget.new ToggleRowEntry());
+        listWidget.addEntry(listWidget.new ButtonRowEntry());
     }
 
-    private void addToggle(int index, int x, int y) {
-        switch (index) {
-            case 0 -> addDrawableChild(toggle("toggle.minecraftagent.streaming", profile.streamingEnabled, x, y, v -> profile.streamingEnabled = v));
-            case 1 -> addDrawableChild(toggle("toggle.minecraftagent.vision", profile.visionEnabled, x, y, v -> profile.visionEnabled = v));
-            case 2 -> addDrawableChild(toggle("toggle.minecraftagent.tools", profile.toolCallsEnabled, x, y, v -> profile.toolCallsEnabled = v));
-            case 3 -> addDrawableChild(toggle("toggle.minecraftagent.cache", profile.cacheEnabled, x, y, v -> profile.cacheEnabled = v));
-            case 4 -> addDrawableChild(toggle("toggle.minecraftagent.lock", profile.locked, x, y, v -> profile.locked = v));
-            case 5 -> addDrawableChild(toggle("toggle.minecraftagent.confirm", config.delegationConfirmRequired, x, y, v -> config.delegationConfirmRequired = v));
-        }
-    }
+    private void addSection(String key) { listWidget.addEntry(listWidget.new SectionEntry(key)); }
 
-    private int addSection(String key, int panelX, int fieldX, int fieldWidth, int y) {
-        sections.add(new SectionAnchor(key, panelX, y));
-        return y + 16;
-    }
-
-    private void addField(String labelKey, String value, int x, int y, Consumer<String> setter) {
-        int fieldWidth = Math.max(80, Math.min(560, width - x - 24));
-        TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, fieldWidth, 18, Text.translatable(labelKey));
+    private void addF(String labelKey, String value, Consumer<String> setter) {
+        TextFieldWidget field = new TextFieldWidget(textRenderer, 0, 0, listWidget.getRowWidth() - 12, 18, Text.translatable(labelKey));
         field.setText(value == null ? "" : value);
         field.setMaxLength(4096);
-        fields.add(new FieldBinding(labelKey, field, setter));
-        addDrawableChild(field);
+        listWidget.addEntry(listWidget.new FieldEntry(labelKey, field, setter));
+        pool.add(new TextFieldPool(field, labelKey, setter));
     }
 
-    private ButtonWidget toggle(String labelKey, boolean initial, int x, int y, Consumer<Boolean> setter) {
-        final boolean[] value = {initial};
-        return ButtonWidget.builder(toggleText(labelKey, value[0]), button -> {
-            value[0] = !value[0];
-            setter.accept(value[0]);
-            button.setMessage(toggleText(labelKey, value[0]));
-        }).dimensions(x, y, 108, 20).build();
-    }
-
-    private Text toggleText(String labelKey, boolean value) {
-        return Text.translatable(labelKey).append(Text.literal(": ")).append(Text.translatable(value ? "value.minecraftagent.on" : "value.minecraftagent.off"));
-    }
-
-    private void saveFields() {
-        fields.forEach(field -> field.setter.accept(field.widget.getText()));
+    private void doSave() {
+        for (TextFieldPool tf : pool) tf.setter.accept(tf.widget.getText());
         config.activeProfileId = profile.id;
+        AgentConfigStore.getInstance().save();
     }
 
-    private int parseInt(String value, int fallback) {
-        try { return Integer.parseInt(value.trim()); }
-        catch (NumberFormatException ex) { return fallback; }
-    }
+    private static String d2s(double v) { return Double.toString(v); }
+    private static String i2s(int v) { return Integer.toString(v); }
+    private int pInt(String s, int fb) { try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return fb; } }
+    private double pDouble(String s, double fb) { try { return Double.parseDouble(s.trim()); } catch (NumberFormatException e) { return fb; } }
 
-    private double parseDouble(String value, double fallback) {
-        try { return Double.parseDouble(value.trim()); }
-        catch (NumberFormatException ex) { return fallback; }
-    }
-
-    @Override
-    public void close() {
-        client.setScreen(parent);
-    }
+    @Override public void close() { client.setScreen(parent); }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context, mouseX, mouseY, delta);
-        int panelWidth = Math.min(760, width - 40);
-        int x = (width - panelWidth) / 2;
-        int top = 24;
-        int contentBottom = findContentBottom();
-        int bottom = Math.min(contentBottom + 8, height - 10);
-
+        context.drawCenteredTextWithShadow(textRenderer,
+                Text.literal("Lever " + MinecraftAgentMod.MOD_VERSION + "  ").append(Text.translatable("screen.minecraftagent.config.title")),
+                width / 2, 14, 0xFFFFFFFF);
         super.render(context, mouseX, mouseY, delta);
-        context.fill(x, top, x + panelWidth, bottom, 0xCC1E1E24);
-        context.drawBorder(x, top, panelWidth, bottom - top, 0xFF606060);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Lever " + MinecraftAgentMod.MOD_VERSION).append(Text.literal("  ⚙")).append(Text.translatable("screen.minecraftagent.config.title")), width / 2, top + 8, 0xFFFFFFFF);
+    }
 
-        for (SectionAnchor section : sections) {
-            context.drawTextWithShadow(textRenderer, Text.translatable(section.key), section.x, section.y + 4, 0xFFFFE082);
+    @Override public boolean shouldPause() { return false; }
+
+    private record TextFieldPool(TextFieldWidget widget, String label, Consumer<String> setter) {}
+
+    final class ConfigListWidget extends EntryListWidget<ConfigListWidget.ConfigEntry> {
+        ConfigListWidget(MinecraftClient client, int width, int top, int bottom, int itemHeight) {
+            super(client, width, top, bottom, itemHeight);
         }
-        for (FieldBinding field : fields) {
-            int labelX = Math.max(x + 10, field.widget.getX() - 156);
-            context.drawTextWithShadow(textRenderer, Text.translatable(field.labelKey), labelX, field.widget.getY() + 5, 0xFFFFE040);
+
+        @Override public int getRowWidth() { return Math.min(420, width - 16); }
+
+        @Override
+        public void appendClickableNarrations(NarrationMessageBuilder builder) {}
+
+        public int addEntry(ConfigEntry entry) { return super.addEntry(entry); }
+
+        abstract class ConfigEntry extends EntryListWidget.Entry<ConfigEntry> {
+            int lastY;
+            int lastX;
+            int lastEntryWidth;
         }
-    }
 
-    private int findContentBottom() {
-        int max = 400;
-        for (FieldBinding f : fields) {
-            int b = f.widget.getY() + 22;
-            if (b > max) max = b;
+        class SectionEntry extends ConfigEntry {
+            final String key;
+            SectionEntry(String k) { key = k; }
+            @Override
+            public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
+                lastY = y; lastX = x; lastEntryWidth = ew;
+                c.drawTextWithShadow(textRenderer, Text.translatable(key), x + 4, y + 2, 0xFFFFE082);
+            }
         }
-        return max;
-    }
 
-    @Override
-    public boolean shouldPause() {
-        return false;
-    }
+        class FieldEntry extends ConfigEntry {
+            final String labelKey;
+            final TextFieldWidget widget;
+            final Consumer<String> setter;
 
-    private record FieldBinding(String labelKey, TextFieldWidget widget, Consumer<String> setter) {
-    }
+            FieldEntry(String lk, TextFieldWidget w, Consumer<String> s) { labelKey = lk; widget = w; setter = s; }
+            @Override
+            public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
+                lastY = y; lastX = x; lastEntryWidth = ew;
+                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 4, y + 2, 0xFFFFE040);
+                widget.setX(x + 4);
+                widget.setY(y);
+                widget.setWidth(Math.min(260, ew - 14));
+                widget.render(c, mx, my, d);
+            }
+            @Override public boolean mouseClicked(double mx, double my, int btn) { return widget.mouseClicked(mx, my, btn); }
+            @Override public boolean keyPressed(int kc, int sc, int mod) { return widget.keyPressed(kc, sc, mod); }
+            @Override public boolean charTyped(char ch, int mod) { return widget.charTyped(ch, mod); }
+        }
 
-    private record SectionAnchor(String key, int x, int y) {
+        class ToggleRowEntry extends ConfigEntry {
+            @Override
+            public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
+                lastY = y; lastX = x; lastEntryWidth = ew;
+                String[] ks = {"streaming", "vision", "tools", "cache", "lock", "confirm"};
+                boolean[] vs = {profile.streamingEnabled, profile.visionEnabled, profile.toolCallsEnabled, profile.cacheEnabled, profile.locked, config.delegationConfirmRequired};
+                int bw = Math.min(100, (ew - 20) / 6);
+                int bx = x + 4;
+                for (int j = 0; j < 6; j++) {
+                    Text label = Text.translatable("toggle.minecraftagent." + ks[j]).append(Text.literal(":")).append(Text.translatable(vs[j] ? "value.minecraftagent.on" : "value.minecraftagent.off"));
+                    c.drawTextWithShadow(textRenderer, label, bx, y + 2, 0xFFCCCCCC);
+                    bx += Math.max(70, bw) + 4;
+                }
+            }
+
+            @Override
+            public boolean mouseClicked(double mx, double my, int btn) {
+                Consumer<Boolean> ss0 = v -> profile.streamingEnabled = v;
+                Consumer<Boolean> ss1 = v -> profile.visionEnabled = v;
+                Consumer<Boolean> ss2 = v -> profile.toolCallsEnabled = v;
+                Consumer<Boolean> ss3 = v -> profile.cacheEnabled = v;
+                Consumer<Boolean> ss4 = v -> profile.locked = v;
+                Consumer<Boolean> ss5 = v -> config.delegationConfirmRequired = v;
+                Consumer<Boolean>[] ss = new Consumer[]{ss0, ss1, ss2, ss3, ss4, ss5};
+                boolean[] vs = {profile.streamingEnabled, profile.visionEnabled, profile.toolCallsEnabled, profile.cacheEnabled, profile.locked, config.delegationConfirmRequired};
+                int bw = Math.min(100, (lastEntryWidth - 20) / 6);
+                int bx = lastX + 4;
+                for (int j = 0; j < 6; j++) {
+                    int w = Math.max(70, bw);
+                    if (mx >= bx && mx <= bx + w + 4 && my >= lastY && my <= lastY + itemHeight) {
+                        vs[j] = !vs[j];
+                        ss[j].accept(vs[j]);
+                        return true;
+                    }
+                    bx += w + 4;
+                }
+                return false;
+            }
+        }
+
+        class ButtonRowEntry extends ConfigEntry {
+            @Override
+            public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
+                lastY = y; lastX = x; lastEntryWidth = ew;
+                int bw = Math.min(84, (ew - 30) / 4);
+                int bx = x + 4;
+                drawBtn(c, Text.translatable("button.minecraftagent.new_profile"), bx, y, bw, eh); bx += bw + 6;
+                drawBtn(c, Text.translatable("button.minecraftagent.next_profile"), bx, y, bw, eh); bx += bw + 6;
+                drawBtn(c, Text.translatable("button.minecraftagent.save"), bx, y, bw, eh); bx += bw + 6;
+                drawBtn(c, Text.translatable("button.minecraftagent.cancel"), bx, y, bw, eh);
+            }
+
+            private void drawBtn(DrawContext c, Text t, int bx, int by, int bw, int bh) {
+                c.fill(bx, by, bx + bw, by + bh, 0xBB404040);
+                c.drawBorder(bx, by, bw, bh, 0xFF808080);
+                c.drawCenteredTextWithShadow(textRenderer, t, bx + bw / 2, by + (bh - 8) / 2, 0xFFFFFFFF);
+            }
+
+            @Override
+            public boolean mouseClicked(double mx, double my, int btn) {
+                int bw = Math.min(84, (lastEntryWidth - 30) / 4);
+                int bx = lastX + 4;
+                if (inRect(mx, my, bx, bw)) { doSave(); AgentProfile n = new AgentProfile(); n.id = UUID.randomUUID().toString(); config.profiles.add(n); config.activeProfileId = n.id; profile = n; clearAndInit(); return true; }
+                bx += bw + 6;
+                if (inRect(mx, my, bx, bw)) { doSave(); int idx = Math.max(0, config.profiles.indexOf(profile)); profile = config.profiles.get((idx + 1) % config.profiles.size()); config.activeProfileId = profile.id; clearAndInit(); return true; }
+                bx += bw + 6;
+                if (inRect(mx, my, bx, bw)) { doSave(); close(); return true; }
+                bx += bw + 6;
+                if (inRect(mx, my, bx, bw)) { close(); return true; }
+                return false;
+            }
+
+            private boolean inRect(double mx, double my, int bx, int bw) {
+                return mx >= bx && mx <= bx + bw && my >= lastY && my <= lastY + itemHeight;
+            }
+        }
     }
 }

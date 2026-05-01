@@ -46,7 +46,8 @@ public final class BotChatScreen extends Screen {
 
     @Override
     protected void init() {
-        int chatWidth = Math.min(800, width - 10);
+        HISTORY.load();
+        int chatWidth = width - 16;
         int x = (width - chatWidth) / 2;
 
         if (!bots.isEmpty()) {
@@ -56,7 +57,8 @@ public final class BotChatScreen extends Screen {
             addDrawableChild(ButtonWidget.builder(Text.literal(">"), btn -> switchBot(1)).dimensions(x + chatWidth - 210, 4, 16, 16).build());
         }
 
-        input = new TextFieldWidget(textRenderer, x + 4, height - 34, chatWidth - 160, 22, Text.literal("..."));
+        int inputWidth = width - 20 - 152;
+        input = new TextFieldWidget(textRenderer, x + 4, height - 34, inputWidth, 22, Text.literal("..."));
         input.setMaxLength(512);
         addDrawableChild(input);
 
