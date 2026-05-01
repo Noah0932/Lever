@@ -3,22 +3,21 @@ package com.noah.minecraftagent;
 import com.noah.minecraftagent.common.bot.BotNetworking;
 import com.noah.minecraftagent.common.config.AgentConfigStore;
 import com.noah.minecraftagent.common.network.AgentNetworking;
+import com.noah.minecraftagent.common.security.PermissionManager;
 import com.noah.minecraftagent.common.util.SecureLog;
-import com.noah.minecraftagent.server.bot.BotChatHandler;
-import com.noah.minecraftagent.server.bot.BotCommand;
-import com.noah.minecraftagent.server.bot.BotManager;
-import com.noah.minecraftagent.server.bot.BotSummonerItem;
+import com.noah.minecraftagent.server.bot.*;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 
@@ -43,16 +42,14 @@ public final class MinecraftAgentMod implements ModInitializer {
         BotChatHandler.register();
 
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (entity instanceof com.noah.minecraftagent.server.bot.BotEntity bot) {
+            if (entity instanceof BotEntity bot) {
                 if (world.isClient) return ActionResult.PASS;
                 var profile = BotManager.getInstance().getProfile(bot.getUuidAsString());
-                if (profile != null && (profile.isOwner(player.getUuidAsString())
-                        || profile.whitelist.contains(player.getUuidAsString())
-                        || player.hasPermissionLevel(2))) {
-                    if (player instanceof net.minecraft.server.network.ServerPlayerEntity sPlayer) {
+                if (profile != null && PermissionManager.canAccess(profile, player.getUuidAsString(), player.hasPermissionLevel(2))) {
+                    if (player instanceof ServerPlayerEntity sPlayer) {
                         sPlayer.openHandledScreen(new SimpleNamedScreenHandlerFactory(
                                 (syncId, inv, p) -> new PlayerScreenHandler(inv, false, p),
-                                net.minecraft.text.Text.literal(bot.getBotProfile().displayName())
+                                Text.literal(bot.getBotProfile().displayName())
                         ));
                         syncInventory(sPlayer, bot);
                     }
@@ -63,7 +60,7 @@ public final class MinecraftAgentMod implements ModInitializer {
         });
     }
 
-    private static void syncInventory(net.minecraft.server.network.ServerPlayerEntity player, com.noah.minecraftagent.server.bot.BotEntity bot) {
+    private static void syncInventory(ServerPlayerEntity player, BotEntity bot) {
         for (int i = 0; i < player.currentScreenHandler.slots.size() && i < bot.getInventory().size(); i++) {
             player.currentScreenHandler.getSlot(i).setStackNoCallbacks(bot.getInventory().getStack(i));
         }

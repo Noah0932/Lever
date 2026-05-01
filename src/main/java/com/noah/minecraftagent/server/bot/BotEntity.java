@@ -3,19 +3,14 @@ package com.noah.minecraftagent.server.bot;
 import com.mojang.authlib.GameProfile;
 import com.noah.minecraftagent.common.bot.BotProfile;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.ClientConnection;
-import net.minecraft.network.NetworkSide;
-import net.minecraft.network.PacketCallbacks;
-import net.minecraft.network.packet.Packet;
+import net.minecraft.entity.player.PlayerModelPart;
+import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ConnectedClientData;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Arm;
 import net.minecraft.util.Formatting;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -24,7 +19,8 @@ public final class BotEntity extends ServerPlayerEntity {
     private ServerPlayerEntity owner;
 
     public BotEntity(MinecraftServer server, ServerWorld world, BotProfile profile) {
-        super(server, world, createGameProfile(profile), null);
+        super(server, world, createGameProfile(profile),
+                new SyncedClientOptions("en_us", 8, net.minecraft.network.message.ChatVisibility.FULL, true, 0x7F, Arm.RIGHT, false, false));
         this.botProfile = profile;
     }
 

@@ -2,6 +2,7 @@ package com.noah.minecraftagent.server.bot;
 
 import com.noah.minecraftagent.common.bot.BotProfile;
 import com.noah.minecraftagent.common.bot.payload.BotMessagePayload;
+import com.noah.minecraftagent.common.security.PermissionManager;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -36,7 +37,7 @@ public final class BotChatHandler {
             BotProfile profile = BotManager.getInstance().getProfile(botEntity.getUuidAsString());
             if (profile == null) return;
 
-            if (!profile.isAuthorized(sender.getUuidAsString()) && !sender.hasPermissionLevel(2)) {
+            if (!PermissionManager.canAccess(profile, sender.getUuidAsString(), sender.hasPermissionLevel(2))) {
                 sender.sendMessage(Text.literal("[Lever] 你没有权限向此 Bot 发送指令").formatted(Formatting.AQUA), false);
                 return;
             }
@@ -47,12 +48,11 @@ public final class BotChatHandler {
     }
 
     public static void broadcastMessage(BotEntity bot, String message, ServerPlayerEntity sender) {
+        BotProfile profile = bot.getBotProfile();
         for (var player : bot.getServer().getPlayerManager().getPlayerList()) {
-            if (player.getUuidAsString().equals(bot.getBotProfile().ownerUuid)
-                    || bot.getBotProfile().whitelist.contains(player.getUuidAsString())
-                    || player.hasPermissionLevel(2)) {
+            if (PermissionManager.canAccess(profile, player.getUuidAsString(), player.hasPermissionLevel(2))) {
                 ServerPlayNetworking.send(player, new BotMessagePayload(
-                        bot.getUuidAsString(), bot.getBotProfile().displayName(), message, false));
+                        bot.getUuidAsString(), profile.displayName(), message, false));
             }
         }
     }

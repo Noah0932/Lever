@@ -1,8 +1,8 @@
 package com.noah.minecraftagent.common.bot;
 
 import com.noah.minecraftagent.common.bot.payload.*;
+import com.noah.minecraftagent.common.security.PermissionManager;
 import com.noah.minecraftagent.server.bot.BotManager;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -30,17 +30,27 @@ public final class BotNetworking {
 
     private static void handleProfileUpdate(ServerPlayerEntity player, BotProfileUpdatePayload payload) {
         BotManager manager = BotManager.getInstance();
-        var bot = manager.getBot(payload.botUuid());
-        if (bot.isEmpty()) return;
+        var botOpt = manager.getBot(payload.botUuid());
+        if (botOpt.isEmpty()) return;
 
         var profile = manager.getProfile(payload.botUuid());
         if (profile == null) return;
-        if (!profile.isOwner(player.getUuidAsString()) && !player.hasPermissionLevel(2)) return;
 
+        String playerUuid = player.getUuidAsString();
+        boolean isOp = player.hasPermissionLevel(2);
+        boolean isTransfer = "transfer_owner".equals(payload.field());
+
+        if (isTransfer) {
+            if (!PermissionManager.canTransfer(profile, playerUuid, isOp)) return;
+        } else {
+            if (!PermissionManager.canModify(profile, playerUuid, isOp)) return;
+        }
+
+        var bot = botOpt.get();
         switch (payload.field()) {
             case "customName" -> {
                 profile.customName = payload.value();
-                bot.get().updateDisplayName();
+                bot.updateDisplayName();
             }
             case "skin" -> profile.skinPlayerName = payload.value();
             case "whitelist_add" -> {
