@@ -38,9 +38,9 @@ public final class AgentConfigScreen extends Screen {
     @Override
     protected void init() {
         pool.clear();
-        int listTop = 34;
+        int listTop = 28;
         int listBottom = height - 6;
-        int listWidth = Math.min(460, width - 16);
+        int listWidth = Math.min(480, width - 12);
 
         listWidget = new ConfigListWidget(client, listWidth, height, listTop, listBottom);
         listWidget.setX((width - listWidth) / 2);
@@ -130,7 +130,7 @@ public final class AgentConfigScreen extends Screen {
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
                 lastY = y; lastX = x; lastEntryWidth = ew;
-                c.drawTextWithShadow(textRenderer, Text.translatable(key), x + 4, y + 2, 0xFFFFE082);
+                c.drawTextWithShadow(textRenderer, Text.translatable(key), x + 8, y + 2, 0xFFFFE082);
             }
         }
 
@@ -138,15 +138,16 @@ public final class AgentConfigScreen extends Screen {
             final String labelKey;
             final TextFieldWidget widget;
             final Consumer<String> setter;
+            private static final int LABEL_WIDTH = 120;
 
             FieldEntry(String lk, TextFieldWidget w, Consumer<String> s) { labelKey = lk; widget = w; setter = s; }
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
                 lastY = y; lastX = x; lastEntryWidth = ew;
-                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 4, y + 2, 0xFFFFE040);
-                widget.setX(x + 4);
+                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 8, y + 6, 0xFFFFE040);
+                widget.setX(x + LABEL_WIDTH);
                 widget.setY(y);
-                widget.setWidth(Math.min(260, ew - 14));
+                widget.setWidth(Math.min(260, ew - LABEL_WIDTH - 10));
                 widget.render(c, mx, my, d);
             }
             @Override public boolean mouseClicked(double mx, double my, int btn) { return widget.mouseClicked(mx, my, btn); }
