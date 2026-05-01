@@ -30,10 +30,13 @@ public final class ChatHistoryManager {
 
     public void addEntry(String threadId, String role, String content) {
         ChatEntry entry = new ChatEntry(threadId, role, content, System.currentTimeMillis());
-        List<ChatEntry> entries = conversations.computeIfAbsent(threadId, k -> new ArrayList<>());
-        entries.add(entry);
-        while (entries.size() > maxEntries) {
-            entries.remove(0);
+        List<ChatEntry> entries = conversations.computeIfAbsent(threadId,
+                k -> Collections.synchronizedList(new ArrayList<>()));
+        synchronized (entries) {
+            entries.add(entry);
+            while (entries.size() > maxEntries) {
+                entries.remove(0);
+            }
         }
     }
 

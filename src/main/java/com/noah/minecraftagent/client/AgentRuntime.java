@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -56,6 +57,15 @@ public final class AgentRuntime {
     public void cancel() {
         cancelled.set(true);
         publish(AgentStatus.ERROR, "Stopped", "", "", false, estimateCurrentCost(""));
+    }
+
+    public void shutdown() {
+        executor.shutdown();
+        try {
+            executor.awaitTermination(3, TimeUnit.SECONDS);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void submit(String goal) {
@@ -165,7 +175,8 @@ public final class AgentRuntime {
             return CompletableFuture.completedFuture(null);
         }
         publish(AgentStatus.CAPTURE, "Capturing screenshot", "", profile.name, false, 0);
-        return runOnClient(() -> screenshotCapture.capture());
+        return runOnClient(() -> screenshotCapture.takeScreenshotOnMain())
+                .thenApplyAsync(ni -> screenshotCapture.processAsync(ni), executor);
     }
 
     private ChatRequest buildRequest(AgentProfile profile, String goal, String contextJson, ScreenshotCapture.CapturedScreenshot screenshot, String observation, int step) {

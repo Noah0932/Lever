@@ -16,13 +16,17 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Base64;
 import java.util.Iterator;
 
 public final class ScreenshotCapture {
-    public CapturedScreenshot capture() throws IOException {
-        MinecraftClient client = MinecraftClient.getInstance();
-        NativeImage nativeImage = ScreenshotRecorder.takeScreenshot(client.getFramebuffer());
+
+    public NativeImage takeScreenshotOnMain() {
+        return ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer());
+    }
+
+    public CapturedScreenshot processAsync(NativeImage nativeImage) {
         try {
             BufferedImage source = new BufferedImage(nativeImage.getWidth(), nativeImage.getHeight(), BufferedImage.TYPE_INT_RGB);
             for (int y = 0; y < nativeImage.getHeight(); y++) {
@@ -31,13 +35,23 @@ public final class ScreenshotCapture {
                 }
             }
             int maxWidth = AgentConfigStore.getInstance().config().screenshotMaxWidth;
+            float quality = AgentConfigStore.getInstance().config().screenshotJpegQuality / 100F;
             BufferedImage resized = resize(source, maxWidth);
-            byte[] jpeg = encodeJpeg(resized, AgentConfigStore.getInstance().config().screenshotJpegQuality / 100F);
+            byte[] jpeg = encodeJpeg(resized, quality);
             String base64 = Base64.getEncoder().encodeToString(jpeg);
             return new CapturedScreenshot(base64, CacheManager.sha256(base64), resized.getWidth(), resized.getHeight());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         } finally {
-            nativeImage.close();
+            if (nativeImage != null) {
+                nativeImage.close();
+            }
         }
+    }
+
+    public CapturedScreenshot capture() throws IOException {
+        NativeImage nativeImage = takeScreenshotOnMain();
+        return processAsync(nativeImage);
     }
 
     private BufferedImage resize(BufferedImage source, int maxWidth) {

@@ -18,6 +18,7 @@ import com.noah.minecraftagent.common.network.AgentPromptResponsePayload;
 import com.noah.minecraftagent.common.network.CommandResultPayload;
 import com.noah.minecraftagent.common.network.DelegateConfigPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
@@ -72,6 +73,8 @@ public final class MinecraftAgentClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(DelegateConfigPayload.ID, (payload, context) -> context.client().execute(() -> handleDelegateConfig(payload)));
         ClientPlayNetworking.registerGlobalReceiver(BotListPayload.ID, (payload, context) -> context.client().execute(() -> handleBotList(payload)));
         ClientPlayNetworking.registerGlobalReceiver(BotMessagePayload.ID, (payload, context) -> context.client().execute(() -> handleBotMessage(payload)));
+
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> runtime.shutdown());
     }
 
     private void handleBotList(BotListPayload payload) {
