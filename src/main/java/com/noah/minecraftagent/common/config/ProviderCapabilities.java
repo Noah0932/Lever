@@ -7,6 +7,8 @@ public final class ProviderCapabilities {
     public boolean supportsUsage = true;
     public boolean supportsJsonMode = false;
     public boolean supportsStreamOptions = false;
+    public boolean supportsMaxTokens = true;
+    public int maxOutputTokens = 4096;
     public int maxContextTokens = 128000;
 
     public static ProviderCapabilities openAiLike() {

@@ -33,4 +33,25 @@ public final class AgentProfile {
         double usd = inputTokens / 1_000_000D * inputUsdPerMillion + outputTokens / 1_000_000D * outputUsdPerMillion;
         return usd * usdToCny;
     }
+
+    public void copyFrom(AgentProfile source) {
+        this.name = source.name;
+        this.baseUrl = source.baseUrl;
+        this.apiKey = source.apiKey;
+        this.model = source.model;
+        this.systemPrompt = source.systemPrompt;
+        this.httpProxy = source.httpProxy;
+        this.temperature = source.temperature;
+        this.maxTokens = source.maxTokens;
+        this.inputUsdPerMillion = source.inputUsdPerMillion;
+        this.outputUsdPerMillion = source.outputUsdPerMillion;
+        this.usdToCny = source.usdToCny;
+        this.dailyLimitCny = source.dailyLimitCny;
+        this.streamingEnabled = source.streamingEnabled;
+        this.visionEnabled = source.visionEnabled;
+        this.toolCallsEnabled = source.toolCallsEnabled;
+        this.cacheEnabled = source.cacheEnabled;
+        this.locked = source.locked;
+        this.maxAgentSteps = source.maxAgentSteps;
+    }
 }

@@ -151,14 +151,16 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
         JsonObject root = new JsonObject();
         root.addProperty("model", request.profile.model);
         root.addProperty("temperature", request.profile.temperature);
-        root.addProperty("max_tokens", request.profile.maxTokens);
+        addMaxTokens(root, request);
         root.addProperty("stream", stream);
         JsonArray messages = new JsonArray();
         for (int index = 0; index < request.messages.size(); index++) {
             ChatMessage message = request.messages.get(index);
             JsonObject item = new JsonObject();
             item.addProperty("role", message.role());
-            if (index == request.messages.size() - 1 && request.hasImage()) {
+            boolean isLast = index == request.messages.size() - 1;
+            boolean hasVision = request.profile.capabilities.supportsVision;
+            if (isLast && request.hasImage() && hasVision) {
                 JsonArray content = new JsonArray();
                 JsonObject text = new JsonObject();
                 text.addProperty("type", "text");
@@ -187,6 +189,18 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
             root.add("stream_options", streamOptions);
         }
         return root;
+    }
+
+    private void addMaxTokens(JsonObject root, ChatRequest request) {
+        if (!request.profile.capabilities.supportsMaxTokens) {
+            return;
+        }
+        int effectiveMax = request.profile.maxTokens;
+        int providerLimit = request.profile.capabilities.maxOutputTokens;
+        if (providerLimit > 0 && effectiveMax > providerLimit) {
+            effectiveMax = providerLimit;
+        }
+        root.addProperty("max_tokens", effectiveMax);
     }
 
     private JsonArray tools() {

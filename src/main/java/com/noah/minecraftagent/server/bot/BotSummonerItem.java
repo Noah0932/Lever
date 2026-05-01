@@ -49,24 +49,7 @@ public final class BotSummonerItem extends Item {
 
     private static AgentProfile copyAgentProfile(AgentProfile source) {
         AgentProfile copy = new AgentProfile();
-        copy.name = source.name;
-        copy.baseUrl = source.baseUrl;
-        copy.apiKey = source.apiKey;
-        copy.model = source.model;
-        copy.systemPrompt = source.systemPrompt;
-        copy.httpProxy = source.httpProxy;
-        copy.temperature = source.temperature;
-        copy.maxTokens = source.maxTokens;
-        copy.inputUsdPerMillion = source.inputUsdPerMillion;
-        copy.outputUsdPerMillion = source.outputUsdPerMillion;
-        copy.usdToCny = source.usdToCny;
-        copy.dailyLimitCny = source.dailyLimitCny;
-        copy.streamingEnabled = source.streamingEnabled;
-        copy.visionEnabled = source.visionEnabled;
-        copy.toolCallsEnabled = source.toolCallsEnabled;
-        copy.cacheEnabled = source.cacheEnabled;
-        copy.locked = source.locked;
-        copy.maxAgentSteps = source.maxAgentSteps;
+        copy.copyFrom(source);
         return copy;
     }
 }
