@@ -9,7 +9,7 @@ import net.minecraft.text.Text;
 import java.util.function.Consumer;
 
 public final class DelegationConfirmScreen extends Screen {
-    private static final String MOD_VERSION = "V1.1-Beta";
+    private static final String MOD_VERSION = "dev-1.0.2";
     private final AgentPromptRequestPayload payload;
     private final Consumer<AgentPromptRequestPayload> accept;
     private final Consumer<AgentPromptRequestPayload> reject;

@@ -37,7 +37,7 @@ public final class AgentRuntime {
     private final ClientContextCollector contextCollector = new ClientContextCollector();
     private final ScreenshotCapture screenshotCapture = new ScreenshotCapture();
     private final AtomicBoolean cancelled = new AtomicBoolean();
-    private volatile Consumer<RuntimeUpdate> listener = update -> {};
+    private Consumer<RuntimeUpdate> listener = update -> {};
     private volatile String lastObservation = "";
 
     public void setListener(Consumer<RuntimeUpdate> listener) {
@@ -56,11 +56,6 @@ public final class AgentRuntime {
     public void cancel() {
         cancelled.set(true);
         publish(AgentStatus.ERROR, "Stopped", "", "", false, estimateCurrentCost(""));
-    }
-
-    public void shutdown() {
-        cancel();
-        executor.shutdownNow();
     }
 
     public void submit(String goal) {

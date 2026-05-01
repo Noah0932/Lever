@@ -1,5 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "misc",
   "pattern": [
     "OGO",
     "RDR",
@@ -13,7 +14,7 @@
     "I": { "item": "minecraft:iron_block" }
   },
   "result": {
-    "id": "minecraftagent:bot_summoner",
+    "item": "minecraftagent:bot_summoner",
     "count": 1
   }
 }

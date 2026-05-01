@@ -2,6 +2,7 @@ package com.noah.minecraftagent.common.tool;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.noah.minecraftagent.common.provider.AgentToolCall;
 
 import java.util.Optional;
@@ -16,10 +17,14 @@ public final class ToolParser {
         if (!"execute_command".equals(call.name())) {
             return Optional.empty();
         }
-        JsonObject object = GSON.fromJson(call.argumentsJson(), JsonObject.class);
-        if (object == null || !object.has("command")) {
+        try {
+            JsonObject object = GSON.fromJson(call.argumentsJson(), JsonObject.class);
+            if (object == null || !object.has("command")) {
+                return Optional.empty();
+            }
+            return Optional.of(object.get("command").getAsString());
+        } catch (JsonSyntaxException exception) {
             return Optional.empty();
         }
-        return Optional.of(object.get("command").getAsString());
     }
 }

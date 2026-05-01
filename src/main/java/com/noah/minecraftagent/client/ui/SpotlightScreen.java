@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class SpotlightScreen extends Screen {
-    private static final String MOD_VERSION = "V1.1-Beta";
+    private static final String MOD_VERSION = "dev-1.0.2";
     private static final List<String> HISTORY = new ArrayList<>();
     private final AgentRuntime runtime;
     private TextFieldWidget input;

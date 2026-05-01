@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class OpenAiCompatibleProvider implements ChatProvider {
+public final class OpenAiCompatibleProvider implements ChatProvider {
     private final Gson gson = new Gson();
 
     @Override
@@ -147,7 +147,7 @@ public class OpenAiCompatibleProvider implements ChatProvider {
                 .build();
     }
 
-    private JsonObject toPayload(ChatRequest request, boolean stream) {
+    JsonObject toPayload(ChatRequest request, boolean stream) {
         JsonObject root = new JsonObject();
         root.addProperty("model", request.profile.model);
         root.addProperty("temperature", request.profile.temperature);
@@ -179,9 +179,7 @@ public class OpenAiCompatibleProvider implements ChatProvider {
         root.add("messages", messages);
         if (request.toolsEnabled && request.profile.toolCallsEnabled && request.profile.capabilities.supportsToolCalls) {
             root.add("tools", tools());
-            if (request.profile.capabilities.supportsToolChoiceAuto) {
-                root.addProperty("tool_choice", "auto");
-            }
+            root.addProperty("tool_choice", "auto");
         }
         if (stream && request.profile.capabilities.supportsStreamOptions) {
             JsonObject streamOptions = new JsonObject();
@@ -189,10 +187,6 @@ public class OpenAiCompatibleProvider implements ChatProvider {
             root.add("stream_options", streamOptions);
         }
         return root;
-    }
-
-    JsonObject toExposedPayload(ChatRequest request, boolean stream) {
-        return toPayload(request, stream);
     }
 
     private JsonArray tools() {
