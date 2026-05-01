@@ -38,11 +38,11 @@ public final class AgentConfigScreen extends Screen {
     @Override
     protected void init() {
         pool.clear();
-        int listTop = 32;
-        int listBottom = height - 40;
+        int listTop = 30;
+        int listBottom = height - 6;
         int listWidth = Math.min(480, width - 12);
 
-        listWidget = new ConfigListWidget(client, listWidth, listTop, listBottom);
+        listWidget = new ConfigListWidget(client, listWidth, height, listTop, listBottom);
         listWidget.setX((width - listWidth) / 2);
         addDrawableChild(listWidget);
 
@@ -96,8 +96,11 @@ public final class AgentConfigScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context, mouseX, mouseY, delta);
+        int panelWidth = Math.min(480, width - 12);
+        int x = (width - panelWidth) / 2;
+        context.fill(x, 10, x + panelWidth, 28, 0xCC1E1E30);
         context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Lever " + MinecraftAgentMod.MOD_VERSION + "  ").append(Text.translatable("screen.minecraftagent.config.title")),
+                Text.literal("Lever " + MinecraftAgentMod.MOD_VERSION).append(Text.literal("  ")).append(Text.translatable("screen.minecraftagent.config.title")),
                 width / 2, 14, 0xFFFFFFFF);
         super.render(context, mouseX, mouseY, delta);
     }
@@ -107,8 +110,8 @@ public final class AgentConfigScreen extends Screen {
     private record TextFieldPool(TextFieldWidget widget, String label, Consumer<String> setter) {}
 
     final class ConfigListWidget extends EntryListWidget<ConfigListWidget.ConfigEntry> {
-        ConfigListWidget(MinecraftClient client, int width, int top, int bottom) {
-            super(client, width, top, bottom, 24);
+        ConfigListWidget(MinecraftClient client, int width, int height, int top, int bottom) {
+            super(client, width, height, top, bottom);
         }
 
         @Override public int getRowWidth() { return Math.min(420, width - 16); }
@@ -118,18 +121,13 @@ public final class AgentConfigScreen extends Screen {
 
         public int addEntry(ConfigEntry entry) { return super.addEntry(entry); }
 
-        abstract class ConfigEntry extends EntryListWidget.Entry<ConfigEntry> {
-            int lastY;
-            int lastX;
-            int lastEntryWidth;
-        }
+        abstract class ConfigEntry extends EntryListWidget.Entry<ConfigEntry> {}
 
         class SectionEntry extends ConfigEntry {
             final String key;
             SectionEntry(String k) { key = k; }
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
-                lastY = y; lastX = x; lastEntryWidth = ew;
                 c.drawTextWithShadow(textRenderer, Text.translatable(key), x + 8, y + 2, 0xFFFFE082);
             }
         }
@@ -138,16 +136,14 @@ public final class AgentConfigScreen extends Screen {
             final String labelKey;
             final TextFieldWidget widget;
             final Consumer<String> setter;
-            private static final int LABEL_WIDTH = 120;
 
             FieldEntry(String lk, TextFieldWidget w, Consumer<String> s) { labelKey = lk; widget = w; setter = s; }
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
-                lastY = y; lastX = x; lastEntryWidth = ew;
-                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 8, y + 5, 0xFFFFE040);
-                widget.setX(x + LABEL_WIDTH);
-                widget.setY(y);
-                widget.setWidth(Math.min(260, ew - LABEL_WIDTH - 10));
+                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 8, y + 6, 0xFFFFE040);
+                widget.setX(x + 120);
+                widget.setY(y + 2);
+                widget.setWidth(Math.min(260, ew - 130));
                 widget.render(c, mx, my, d);
             }
             @Override public boolean mouseClicked(double mx, double my, int btn) { return widget.mouseClicked(mx, my, btn); }
@@ -158,20 +154,21 @@ public final class AgentConfigScreen extends Screen {
         class ToggleRowEntry extends ConfigEntry {
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
-                lastY = y; lastX = x; lastEntryWidth = ew;
                 String[] ks = {"streaming", "vision", "tools", "cache", "lock", "confirm"};
                 boolean[] vs = {profile.streamingEnabled, profile.visionEnabled, profile.toolCallsEnabled, profile.cacheEnabled, profile.locked, config.delegationConfirmRequired};
                 int bw = Math.min(100, (ew - 20) / 6);
                 int bx = x + 4;
                 for (int j = 0; j < 6; j++) {
-                    Text label = Text.translatable("toggle.minecraftagent." + ks[j]).append(Text.literal(":")).append(Text.translatable(vs[j] ? "value.minecraftagent.on" : "value.minecraftagent.off"));
+                    Text label = Text.translatable("toggle.minecraftagent." + ks[j])
+                            .append(Text.literal(":"))
+                            .append(Text.translatable(vs[j] ? "value.minecraftagent.on" : "value.minecraftagent.off"));
                     c.drawTextWithShadow(textRenderer, label, bx, y + 2, 0xFFCCCCCC);
                     bx += Math.max(70, bw) + 4;
                 }
             }
-
             @Override
             public boolean mouseClicked(double mx, double my, int btn) {
+                boolean[] vs = {profile.streamingEnabled, profile.visionEnabled, profile.toolCallsEnabled, profile.cacheEnabled, profile.locked, config.delegationConfirmRequired};
                 Consumer<Boolean> ss0 = v -> profile.streamingEnabled = v;
                 Consumer<Boolean> ss1 = v -> profile.visionEnabled = v;
                 Consumer<Boolean> ss2 = v -> profile.toolCallsEnabled = v;
@@ -179,12 +176,11 @@ public final class AgentConfigScreen extends Screen {
                 Consumer<Boolean> ss4 = v -> profile.locked = v;
                 Consumer<Boolean> ss5 = v -> config.delegationConfirmRequired = v;
                 Consumer<Boolean>[] ss = new Consumer[]{ss0, ss1, ss2, ss3, ss4, ss5};
-                boolean[] vs = {profile.streamingEnabled, profile.visionEnabled, profile.toolCallsEnabled, profile.cacheEnabled, profile.locked, config.delegationConfirmRequired};
-                int bw = Math.min(100, (lastEntryWidth - 20) / 6);
-                int bx = lastX + 4;
+                int bw = Math.min(100, (getRowWidth() - 20) / 6);
+                int bx = getX() + 4;
                 for (int j = 0; j < 6; j++) {
                     int w = Math.max(70, bw);
-                    if (mx >= bx && mx <= bx + w + 4 && my >= lastY && my <= lastY + itemHeight) {
+                    if (mx >= bx && mx <= bx + w + 4) {
                         vs[j] = !vs[j];
                         ss[j].accept(vs[j]);
                         return true;
@@ -198,7 +194,6 @@ public final class AgentConfigScreen extends Screen {
         class ButtonRowEntry extends ConfigEntry {
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
-                lastY = y; lastX = x; lastEntryWidth = ew;
                 int bw = Math.min(84, (ew - 30) / 4);
                 int bx = x + 4;
                 drawBtn(c, Text.translatable("button.minecraftagent.new_profile"), bx, y, bw, eh); bx += bw + 6;
@@ -206,29 +201,22 @@ public final class AgentConfigScreen extends Screen {
                 drawBtn(c, Text.translatable("button.minecraftagent.save"), bx, y, bw, eh); bx += bw + 6;
                 drawBtn(c, Text.translatable("button.minecraftagent.cancel"), bx, y, bw, eh);
             }
-
             private void drawBtn(DrawContext c, Text t, int bx, int by, int bw, int bh) {
-                c.fill(bx, by, bx + bw, by + bh, 0xBB404040);
-                c.drawBorder(bx, by, bw, bh, 0xFF808080);
+                c.fill(bx + 1, by + 1, bx + bw - 1, by + bh - 1, 0xBB404040);
                 c.drawCenteredTextWithShadow(textRenderer, t, bx + bw / 2, by + (bh - 8) / 2, 0xFFFFFFFF);
             }
-
             @Override
             public boolean mouseClicked(double mx, double my, int btn) {
-                int bw = Math.min(84, (lastEntryWidth - 30) / 4);
-                int bx = lastX + 4;
-                if (inRect(mx, my, bx, bw)) { doSave(); AgentProfile n = new AgentProfile(); n.id = UUID.randomUUID().toString(); config.profiles.add(n); config.activeProfileId = n.id; profile = n; clearAndInit(); return true; }
+                int bw = Math.min(84, (getRowWidth() - 30) / 4);
+                int bx = getX() + 4;
+                if (mx >= bx && mx <= bx + bw) { doSave(); AgentProfile n = new AgentProfile(); n.id = UUID.randomUUID().toString(); config.profiles.add(n); config.activeProfileId = n.id; profile = n; clearAndInit(); return true; }
                 bx += bw + 6;
-                if (inRect(mx, my, bx, bw)) { doSave(); int idx = Math.max(0, config.profiles.indexOf(profile)); profile = config.profiles.get((idx + 1) % config.profiles.size()); config.activeProfileId = profile.id; clearAndInit(); return true; }
+                if (mx >= bx && mx <= bx + bw) { doSave(); int idx = Math.max(0, config.profiles.indexOf(profile)); profile = config.profiles.get((idx + 1) % config.profiles.size()); config.activeProfileId = profile.id; clearAndInit(); return true; }
                 bx += bw + 6;
-                if (inRect(mx, my, bx, bw)) { doSave(); close(); return true; }
+                if (mx >= bx && mx <= bx + bw) { doSave(); close(); return true; }
                 bx += bw + 6;
-                if (inRect(mx, my, bx, bw)) { close(); return true; }
+                if (mx >= bx && mx <= bx + bw) { close(); return true; }
                 return false;
-            }
-
-            private boolean inRect(double mx, double my, int bx, int bw) {
-                return mx >= bx && mx <= bx + bw && my >= lastY && my <= lastY + itemHeight;
             }
         }
     }
