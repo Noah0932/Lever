@@ -228,26 +228,57 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
 
     private JsonArray tools() {
         JsonArray tools = new JsonArray();
+        tools.add(buildTool("look_at", "Rotate camera to look at target coordinates.",
+                prop("x", "number", "Target X coordinate"),
+                prop("y", "number", "Target Y coordinate (eye level)"),
+                prop("z", "number", "Target Z coordinate")));
+        tools.add(buildTool("walk_to", "Walk the player toward target coordinates by holding forward key.",
+                prop("x", "number", "Target X"),
+                prop("y", "number", "Target Y"),
+                prop("z", "number", "Target Z")));
+        tools.add(buildTool("mine_block", "Look at and continuously mine a block at the given position until destroyed.",
+                prop("x", "number", "Block X"),
+                prop("y", "number", "Block Y"),
+                prop("z", "number", "Block Z")));
+        tools.add(buildTool("place_block", "Face a block face and right-click to place the held item.",
+                prop("x", "number", "Block X"),
+                prop("y", "number", "Block Y"),
+                prop("z", "number", "Block Z"),
+                prop("face", "string", "Block face: up/down/north/south/east/west")));
+        tools.add(buildTool("use_item", "Right-click to use the currently held item.", new String[][]{}));
+        tools.add(buildTool("jump", "Make the player jump once.", new String[][]{}));
+        tools.add(buildTool("sneak", "Toggle sneak/crouch state.",
+                prop("on", "boolean", "true to sneak, false to stand")));
+        tools.add(buildTool("get_position", "Report current coordinates, dimension, and facing direction.", new String[][]{}));
+        return tools;
+    }
+
+    private JsonObject buildTool(String name, String description, String[]... props) {
         JsonObject tool = new JsonObject();
         tool.addProperty("type", "function");
-        JsonObject function = new JsonObject();
-        function.addProperty("name", "execute_command");
-        function.addProperty("description", "Execute a Minecraft command after server-side permission and safety checks.");
-        JsonObject parameters = new JsonObject();
-        parameters.addProperty("type", "object");
+        JsonObject fn = new JsonObject();
+        fn.addProperty("name", name);
+        fn.addProperty("description", description);
+        JsonObject params = new JsonObject();
+        params.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        JsonObject command = new JsonObject();
-        command.addProperty("type", "string");
-        command.addProperty("description", "Minecraft command without leading slash preferred.");
-        properties.add("command", command);
-        parameters.add("properties", properties);
         JsonArray required = new JsonArray();
-        required.add("command");
-        parameters.add("required", required);
-        function.add("parameters", parameters);
-        tool.add("function", function);
-        tools.add(tool);
-        return tools;
+        for (String[] p : props) {
+            JsonObject prop = new JsonObject();
+            prop.addProperty("type", p[1]);
+            prop.addProperty("description", p[2]);
+            properties.add(p[0], prop);
+            required.add(p[0]);
+        }
+        params.add("properties", properties);
+        params.add("required", required);
+        fn.add("parameters", params);
+        tool.add("function", fn);
+        return tool;
+    }
+
+    private static String[] prop(String name, String type, String desc) {
+        return new String[]{name, type, desc};
     }
 
     private ChatResponse parseFullResponse(String body, ChatRequest request, boolean cached) {

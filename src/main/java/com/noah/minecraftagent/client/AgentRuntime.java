@@ -1,5 +1,7 @@
 package com.noah.minecraftagent.client;
 
+import com.noah.minecraftagent.client.physical.PhysicalAction;
+import com.noah.minecraftagent.client.physical.PhysicalActionExecutor;
 import com.noah.minecraftagent.common.billing.BillingManager;
 import com.noah.minecraftagent.common.cache.CacheManager;
 import com.noah.minecraftagent.common.config.AgentConfig;
@@ -14,6 +16,8 @@ import com.noah.minecraftagent.common.util.SecureLog;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -185,7 +189,7 @@ public final class AgentRuntime {
 
     private ChatRequest buildRequest(AgentProfile profile, String goal, String contextJson, ScreenshotCapture.CapturedScreenshot screenshot, String observation, int step) {
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("system", profile.systemPrompt + "\nReturn tool_calls when a command is needed. Stop when the goal is complete."));
+        messages.add(new ChatMessage("system", profile.systemPrompt + "\nYou control the player entity directly. Available physical actions: look_at(x,y,z) to face direction, walk_to(x,y,z) to move, mine_block(x,y,z) to break blocks, place_block(x,y,z,face) to place blocks, use_item() to use held item, jump() to jump, sneak(on) to crouch, get_position() to check location. Stop when the goal is complete. Return tool_calls to execute actions."));
         messages.add(new ChatMessage("user", "Goal: " + goal + "\nStep: " + step + "\nContext JSON: " + contextJson + "\nLast observation: " + observation));
         ChatRequest request = new ChatRequest();
         request.profile = profile;
@@ -208,35 +212,67 @@ public final class AgentRuntime {
         publish(AgentStatus.ACTING, "Executing " + response.toolCalls.size() + " tool call(s)", response.text, profile.name, response.cached, billing.todayCostCny());
         boolean anyExecuted = false;
         for (AgentToolCall call : response.toolCalls) {
-            Optional<String> command = ToolParser.executeCommand(call);
-            if (command.isEmpty()) {
+            PhysicalAction action = parsePhysicalAction(call);
+            if (action == null) {
                 continue;
             }
-            CommandSafety.SafetyResult safety = CommandSafety.validate(command.get());
-            if (!safety.allowed()) {
-                lastObservation = safety.reason();
-                publish(AgentStatus.ERROR, safety.reason(), response.text, profile.name, response.cached, billing.todayCostCny());
-                return false;
-            }
             anyExecuted = true;
-            runOnClient(() -> {
-                if (ClientPlayNetworking.canSend(ExecuteCommandPayload.ID)) {
-                    ClientPlayNetworking.send(new ExecuteCommandPayload(safety.normalizedCommand()));
-                    lastObservation = "Sent command /" + safety.normalizedCommand();
-                } else if (MinecraftClient.getInstance().player != null) {
-                    MinecraftClient.getInstance().player.sendMessage(Text.literal("[AI Agent] Server mod not available. Suggested command: /" + safety.normalizedCommand()), false);
-                    lastObservation = "Server mod unavailable; command was shown to player";
-                }
-                return null;
-            }).join();
+            MinecraftClient.getInstance().execute(() ->
+                    PhysicalActionExecutor.execute(action,
+                            update -> publish(update.status(), update.message(), update.text(), update.channel(), update.cached(), update.costCny())));
         }
         if (!anyExecuted) {
-            lastObservation = response.text.isBlank() ? "No executable command found in response" : response.text;
+            lastObservation = response.text.isBlank() ? "No executable action found in response" : response.text;
             publish(AgentStatus.OBSERVING, lastObservation, response.text, profile.name, response.cached, billing.todayCostCny());
             return false;
         }
         publish(AgentStatus.OBSERVING, lastObservation, response.text, profile.name, response.cached, billing.todayCostCny());
         return true;
+    }
+
+    private PhysicalAction parsePhysicalAction(AgentToolCall call) {
+        return switch (call.name()) {
+            case "look_at" -> {
+                var a = parseCoords(call.argumentsJson());
+                yield a == null ? null : new PhysicalAction.LookAt(a[0], a[1], a[2]);
+            }
+            case "walk_to" -> {
+                var a = parseCoords(call.argumentsJson());
+                yield a == null ? null : new PhysicalAction.WalkTo(a[0], a[1], a[2]);
+            }
+            case "mine_block" -> {
+                var a = parseCoords(call.argumentsJson());
+                yield a == null ? null : new PhysicalAction.MineBlock(BlockPos.ofFloored(a[0], a[1], a[2]));
+            }
+            case "place_block" -> {
+                var obj = new com.google.gson.Gson().fromJson(call.argumentsJson(), com.google.gson.JsonObject.class);
+                if (obj == null) yield null;
+                int x = obj.has("x") ? obj.get("x").getAsInt() : 0;
+                int y = obj.has("y") ? obj.get("y").getAsInt() : 0;
+                int z = obj.has("z") ? obj.get("z").getAsInt() : 0;
+                String f = obj.has("face") ? obj.get("face").getAsString() : "up";
+                yield new PhysicalAction.PlaceBlock(BlockPos.ofFloored(x, y, z), Direction.byName(f));
+            }
+            case "use_item" -> new PhysicalAction.UseItem();
+            case "jump" -> new PhysicalAction.Jump();
+            case "sneak" -> {
+                var obj = new com.google.gson.Gson().fromJson(call.argumentsJson(), com.google.gson.JsonObject.class);
+                boolean on = obj != null && obj.has("on") && obj.get("on").getAsBoolean();
+                yield new PhysicalAction.Sneak(on);
+            }
+            case "get_position" -> new PhysicalAction.GetPosition();
+            default -> null;
+        };
+    }
+
+    private static double[] parseCoords(String json) {
+        var obj = new com.google.gson.Gson().fromJson(json, com.google.gson.JsonObject.class);
+        if (obj == null) return null;
+        return new double[]{
+                obj.has("x") ? obj.get("x").getAsDouble() : 0,
+                obj.has("y") ? obj.get("y").getAsDouble() : 0,
+                obj.has("z") ? obj.get("z").getAsDouble() : 0
+        };
     }
 
     private boolean canReadResponseCache(AgentProfile profile) {
