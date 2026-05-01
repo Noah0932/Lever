@@ -42,7 +42,7 @@ public final class AgentConfigScreen extends Screen {
         int listBottom = height - 6;
         int listWidth = Math.min(480, width - 12);
 
-        listWidget = new ConfigListWidget(client, listWidth, height, listTop, listBottom);
+        listWidget = new ConfigListWidget(client, listWidth, listTop, listBottom);
         listWidget.setX((width - listWidth) / 2);
         addDrawableChild(listWidget);
 
@@ -107,8 +107,8 @@ public final class AgentConfigScreen extends Screen {
     private record TextFieldPool(TextFieldWidget widget, String label, Consumer<String> setter) {}
 
     final class ConfigListWidget extends EntryListWidget<ConfigListWidget.ConfigEntry> {
-        ConfigListWidget(MinecraftClient client, int width, int height, int top, int bottom) {
-            super(client, width, height, top, bottom);
+        ConfigListWidget(MinecraftClient client, int width, int top, int bottom) {
+            super(client, width, top, bottom, 26);
         }
 
         @Override public int getRowWidth() { return Math.min(420, width - 16); }
@@ -144,9 +144,9 @@ public final class AgentConfigScreen extends Screen {
             @Override
             public void render(DrawContext c, int i, int y, int x, int ew, int eh, int mx, int my, boolean hov, float d) {
                 lastY = y; lastX = x; lastEntryWidth = ew;
-                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 8, y + 6, 0xFFFFE040);
+                c.drawTextWithShadow(textRenderer, Text.translatable(labelKey), x + 8, y + 7, 0xFFFFE040);
                 widget.setX(x + LABEL_WIDTH);
-                widget.setY(y);
+                widget.setY(y + 2);
                 widget.setWidth(Math.min(260, ew - LABEL_WIDTH - 10));
                 widget.render(c, mx, my, d);
             }
