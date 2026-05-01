@@ -8,10 +8,7 @@ import com.noah.minecraftagent.common.config.AgentConfigStore;
 import com.noah.minecraftagent.common.config.AgentProfile;
 import com.noah.minecraftagent.common.util.SecureLog;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
@@ -25,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 public final class OpenAiCompatibleProvider implements ChatProvider {
     private final Gson gson = new Gson();
@@ -79,51 +77,44 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
     }
 
     private ChatResponse stream(ChatRequest request, StreamListener listener, AtomicBoolean cancelled) throws IOException, InterruptedException {
-        HttpResponse<InputStream> response = client(request.profile).send(buildRequest(request, true), HttpResponse.BodyHandlers.ofInputStream());
+        HttpResponse<Stream<String>> response = client(request.profile).send(buildRequest(request, true), HttpResponse.BodyHandlers.ofLines());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            String body;
-            try {
-                body = new String(response.body().readAllBytes(), StandardCharsets.UTF_8);
-            } catch (IOException readException) {
-                throw new IOException("HTTP " + response.statusCode() + " (error body unavailable)", readException);
-            }
+            String body = response.body().reduce("", (a, b) -> a + b);
             throw new IOException("HTTP " + response.statusCode() + ": " + SecureLog.mask(body));
         }
 
         StringBuilder text = new StringBuilder();
         List<AgentToolCall> toolCalls = new ArrayList<>();
         Usage usage = new Usage(request.estimatedInputTokens, 0, true);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (cancelled.get()) {
-                    throw new IOException("Request cancelled");
+
+        var lines = response.body().takeWhile(line -> !cancelled.get())
+                .filter(line -> line.startsWith("data:"))
+                .map(line -> line.substring(5).trim())
+                .takeWhile(data -> !data.equals("[DONE]"))
+                .toList();
+
+        for (String data : lines) {
+            if (cancelled.get()) {
+                throw new IOException("Request cancelled");
+            }
+            JsonObject chunk = gson.fromJson(data, JsonObject.class);
+            JsonArray choices = chunk.has("choices") ? chunk.getAsJsonArray("choices") : new JsonArray();
+            if (!choices.isEmpty()) {
+                JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
+                if (delta != null && delta.has("content") && !delta.get("content").isJsonNull()) {
+                    String token = delta.get("content").getAsString();
+                    text.append(token);
+                    listener.onToken(token);
                 }
-                if (!line.startsWith("data:")) {
-                    continue;
-                }
-                String data = line.substring(5).trim();
-                if (data.equals("[DONE]")) {
-                    break;
-                }
-                JsonObject chunk = gson.fromJson(data, JsonObject.class);
-                JsonArray choices = chunk.has("choices") ? chunk.getAsJsonArray("choices") : new JsonArray();
-                if (!choices.isEmpty()) {
-                    JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
-                    if (delta != null && delta.has("content") && !delta.get("content").isJsonNull()) {
-                        String token = delta.get("content").getAsString();
-                        text.append(token);
-                        listener.onToken(token);
-                    }
-                    if (delta != null && delta.has("tool_calls")) {
-                        toolCalls.addAll(parseToolCalls(delta.getAsJsonArray("tool_calls")));
-                    }
-                }
-                if (chunk.has("usage") && !chunk.get("usage").isJsonNull()) {
-                    usage = parseUsage(chunk.getAsJsonObject("usage"), false, request);
+                if (delta != null && delta.has("tool_calls")) {
+                    toolCalls.addAll(parseToolCalls(delta.getAsJsonArray("tool_calls")));
                 }
             }
+            if (chunk.has("usage") && !chunk.get("usage").isJsonNull()) {
+                usage = parseUsage(chunk.getAsJsonObject("usage"), false, request);
+            }
         }
+
         ChatResponse chatResponse = new ChatResponse();
         chatResponse.text = text.toString();
         chatResponse.toolCalls = toolCalls;
@@ -283,5 +274,3 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
         return calls;
     }
 }
-
-

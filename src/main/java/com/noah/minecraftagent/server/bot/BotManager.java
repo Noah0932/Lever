@@ -42,13 +42,10 @@ public final class BotManager {
         botsByUuid.remove(uuid);
         BotProfile profile = botProfiles.remove(uuid);
         if (profile != null) {
-            List<String> ownedBots = ownerBots.get(profile.ownerUuid);
-            if (ownedBots != null) {
-                ownedBots.remove(uuid);
-                if (ownedBots.isEmpty()) {
-                    ownerBots.remove(profile.ownerUuid);
-                }
-            }
+            ownerBots.computeIfPresent(profile.ownerUuid, (k, v) -> {
+                v.remove(uuid);
+                return v.isEmpty() ? null : v;
+            });
         }
         bot.discard();
     }

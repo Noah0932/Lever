@@ -71,10 +71,12 @@ public final class ChatHistoryManager {
                 String safeName = entry.getKey().replaceAll("[^a-zA-Z0-9._-]", "_");
                 Path file = historyDir.resolve(safeName + ".json");
                 List<ChatEntry> list = entry.getValue();
+                List<ChatEntry> snapshot;
                 synchronized (list) {
-                    String json = GSON.toJson(list);
-                    Files.writeString(file, json, StandardCharsets.UTF_8);
+                    snapshot = new ArrayList<>(list);
                 }
+                String json = GSON.toJson(snapshot);
+                Files.writeString(file, json, StandardCharsets.UTF_8);
             }
         } catch (IOException exception) {
             SecureLog.error("Failed to persist chat history", exception);

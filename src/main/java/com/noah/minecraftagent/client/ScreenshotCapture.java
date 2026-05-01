@@ -17,6 +17,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.Base64;
 import java.util.Iterator;
 
@@ -28,12 +31,13 @@ public final class ScreenshotCapture {
 
     public CapturedScreenshot processAsync(NativeImage nativeImage) {
         try {
-            BufferedImage source = new BufferedImage(nativeImage.getWidth(), nativeImage.getHeight(), BufferedImage.TYPE_INT_RGB);
-            for (int y = 0; y < nativeImage.getHeight(); y++) {
-                for (int x = 0; x < nativeImage.getWidth(); x++) {
-                    source.setRGB(x, y, nativeImage.getColor(x, y));
-                }
-            }
+            int w = nativeImage.getWidth();
+            int h = nativeImage.getHeight();
+            int[] pixels = convertAbgrToArgbBulk(nativeImage, w, h);
+
+            BufferedImage source = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            source.setRGB(0, 0, w, h, pixels, 0, w);
+
             int maxWidth = AgentConfigStore.getInstance().config().screenshotMaxWidth;
             float quality = AgentConfigStore.getInstance().config().screenshotJpegQuality / 100F;
             BufferedImage resized = resize(source, maxWidth);
@@ -47,6 +51,18 @@ public final class ScreenshotCapture {
                 nativeImage.close();
             }
         }
+    }
+
+    static int[] convertAbgrToArgbBulk(NativeImage nativeImage, int width, int height) throws IOException {
+        byte[] rawBytes = nativeImage.getBytes();
+        IntBuffer intBuf = ByteBuffer.wrap(rawBytes).order(ByteOrder.nativeOrder()).asIntBuffer();
+        int pixelCount = width * height;
+        int[] pixels = new int[pixelCount];
+        for (int i = 0; i < pixelCount; i++) {
+            int abgr = intBuf.get(i);
+            pixels[i] = (abgr & 0xFF00FF00) | ((abgr & 0x00FF0000) >>> 16) | ((abgr & 0x000000FF) << 16);
+        }
+        return pixels;
     }
 
     public CapturedScreenshot capture() throws IOException {
