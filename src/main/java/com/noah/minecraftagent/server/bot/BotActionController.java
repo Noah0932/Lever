@@ -234,7 +234,7 @@ public final class BotActionController {
     // ── Attack Entity ──────────────────────────────────────
 
     public void attackEntity(Entity target) {
-        interactionManager.attackEntity(bot, target);
+        bot.attack(target);
         bot.swingHand(Hand.MAIN_HAND);
     }
 

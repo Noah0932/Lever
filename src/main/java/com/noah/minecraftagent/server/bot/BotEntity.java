@@ -5,6 +5,7 @@ import com.noah.minecraftagent.common.bot.BotProfile;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ConnectedClientData;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -25,7 +26,9 @@ public final class BotEntity extends ServerPlayerEntity {
         this.botProfile = profile;
 
         DummyClientConnection dummyConnection = new DummyClientConnection();
-        networkHandler = new ServerPlayNetworkHandler(server, dummyConnection, this);
+        ConnectedClientData clientData = new ConnectedClientData(
+                getGameProfile(), 256, getClientOptions(), false);
+        networkHandler = new ServerPlayNetworkHandler(server, dummyConnection, this, clientData);
 
         this.controller = new BotActionController(this);
     }
