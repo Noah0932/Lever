@@ -204,6 +204,7 @@ public final class AgentRuntime {
             return false;
         }
         publish(AgentStatus.ACTING, "Executing " + response.toolCalls.size() + " tool call(s)", response.text, profile.name, response.cached, billing.todayCostCny());
+        boolean anyExecuted = false;
         for (AgentToolCall call : response.toolCalls) {
             Optional<String> command = ToolParser.executeCommand(call);
             if (command.isEmpty()) {
@@ -215,6 +216,7 @@ public final class AgentRuntime {
                 publish(AgentStatus.ERROR, safety.reason(), response.text, profile.name, response.cached, billing.todayCostCny());
                 return false;
             }
+            anyExecuted = true;
             runOnClient(() -> {
                 if (ClientPlayNetworking.canSend(ExecuteCommandPayload.ID)) {
                     ClientPlayNetworking.send(new ExecuteCommandPayload(safety.normalizedCommand()));
@@ -225,6 +227,11 @@ public final class AgentRuntime {
                 }
                 return null;
             }).join();
+        }
+        if (!anyExecuted) {
+            lastObservation = response.text.isBlank() ? "No executable command found in response" : response.text;
+            publish(AgentStatus.OBSERVING, lastObservation, response.text, profile.name, response.cached, billing.todayCostCny());
+            return false;
         }
         publish(AgentStatus.OBSERVING, lastObservation, response.text, profile.name, response.cached, billing.todayCostCny());
         return true;
