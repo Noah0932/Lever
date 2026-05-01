@@ -1,24 +1,17 @@
 package com.noah.minecraftagent.client.bot;
 
+import com.noah.minecraftagent.MinecraftAgentMod;
 import com.noah.minecraftagent.common.bot.BotProfile;
 import com.noah.minecraftagent.common.bot.payload.BotProfileUpdatePayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.screen.PlayerScreenHandler;
-import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 public final class BotInventoryScreen extends Screen {
-    private static final String MOD_VERSION = "V1.1-Beta";
     private final BotProfile profile;
     private final Screen parent;
     private TextFieldWidget nameField;
@@ -85,7 +78,7 @@ public final class BotInventoryScreen extends Screen {
         context.drawTextWithShadow(textRenderer, Text.literal("白名单: " + String.join(", ", profile.whitelist.stream().limit(3).toList()) + (profile.whitelist.size() > 3 ? "..." : "")), x + 10, 140, 0xFFAAAAAA);
         context.drawTextWithShadow(textRenderer, Text.literal("AI配置: " + (profile.aiConfigInherited ? "继承自主人" : "独立配置")), x + 10, 156, 0xFFAAAAAA);
         super.render(context, mouseX, mouseY, delta);
-        context.drawTextWithShadow(textRenderer, Text.literal("v" + MOD_VERSION), x + panelWidth - textRenderer.getWidth("v" + MOD_VERSION) - 4, 210, 0xFF505050);
+        context.drawTextWithShadow(textRenderer, Text.literal("v" + MinecraftAgentMod.MOD_VERSION), x + panelWidth - textRenderer.getWidth("v" + MinecraftAgentMod.MOD_VERSION) - 4, 210, 0xFF505050);
     }
 
     @Override

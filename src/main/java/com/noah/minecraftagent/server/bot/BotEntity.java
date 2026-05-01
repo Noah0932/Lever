@@ -3,9 +3,10 @@ package com.noah.minecraftagent.server.bot;
 import com.mojang.authlib.GameProfile;
 import com.noah.minecraftagent.common.bot.BotProfile;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.player.PlayerModelPart;
 import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ConnectedClientData;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -16,12 +17,20 @@ import java.util.UUID;
 
 public final class BotEntity extends ServerPlayerEntity {
     private final BotProfile botProfile;
+    private final BotActionController controller;
     private ServerPlayerEntity owner;
 
     public BotEntity(MinecraftServer server, ServerWorld world, BotProfile profile) {
         super(server, world, createGameProfile(profile),
                 new SyncedClientOptions("en_us", 8, net.minecraft.network.message.ChatVisibility.FULL, true, 0x7F, Arm.RIGHT, false, false));
         this.botProfile = profile;
+
+        DummyClientConnection dummyConnection = new DummyClientConnection();
+        ConnectedClientData clientData = new ConnectedClientData(
+                getGameProfile(), 256, getClientOptions(), false);
+        networkHandler = new ServerPlayNetworkHandler(server, dummyConnection, this, clientData);
+
+        this.controller = new BotActionController(this);
     }
 
     private static GameProfile createGameProfile(BotProfile profile) {
@@ -39,6 +48,16 @@ public final class BotEntity extends ServerPlayerEntity {
 
     public void setOwner(ServerPlayerEntity owner) {
         this.owner = owner;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        controller.tick();
+    }
+
+    public BotActionController getController() {
+        return controller;
     }
 
     @Override

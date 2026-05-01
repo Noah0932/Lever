@@ -62,11 +62,7 @@ public final class BotSummonerItem extends Item {
         profile.aiConfig = copyAgentProfile(activeAi);
         profile.aiConfigInherited = true;
 
-        BotEntity bot = new BotEntity(server, serverWorld, profile);
-        bot.setOwner(player);
-        bot.updateDisplayName();
-        serverWorld.spawnEntity(bot);
-        bot.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+        BotEntity bot = manager.summon(server, player, profile);
 
         if (!player.isCreative()) {
             stack.decrement(1);

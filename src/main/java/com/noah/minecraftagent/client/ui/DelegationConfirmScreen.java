@@ -1,5 +1,6 @@
 package com.noah.minecraftagent.client.ui;
 
+import com.noah.minecraftagent.MinecraftAgentMod;
 import com.noah.minecraftagent.common.network.AgentPromptRequestPayload;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -9,7 +10,6 @@ import net.minecraft.text.Text;
 import java.util.function.Consumer;
 
 public final class DelegationConfirmScreen extends Screen {
-    private static final String MOD_VERSION = "V1.1-Beta";
     private final AgentPromptRequestPayload payload;
     private final Consumer<AgentPromptRequestPayload> accept;
     private final Consumer<AgentPromptRequestPayload> reject;
@@ -55,7 +55,7 @@ public final class DelegationConfirmScreen extends Screen {
         context.drawTextWithShadow(textRenderer, trim(payload.prompt(), 80), x + 18, y + 72, 0xFFFFFFFF);
         super.render(context, mouseX, mouseY, delta);
         int footerX = x + panelWidth;
-        context.drawTextWithShadow(textRenderer, Text.literal("v" + MOD_VERSION), footerX - textRenderer.getWidth("v" + MOD_VERSION), y + 140 + 6, 0xFF909090);
+        context.drawTextWithShadow(textRenderer, Text.literal("v" + MinecraftAgentMod.MOD_VERSION), footerX - textRenderer.getWidth("v" + MinecraftAgentMod.MOD_VERSION), y + 140 + 6, 0xFF909090);
         context.drawTextWithShadow(textRenderer, Text.literal("github.com/noah0932"), footerX - textRenderer.getWidth("github.com/noah0932"), y + 140 + 18, 0xFF909090);
         context.drawTextWithShadow(textRenderer, Text.literal("MCAI.noah0932.top"), footerX - textRenderer.getWidth("MCAI.noah0932.top"), y + 140 + 30, 0xFF909090);
     }

@@ -1,5 +1,6 @@
 package com.noah.minecraftagent.client.ui;
 
+import com.noah.minecraftagent.MinecraftAgentMod;
 import com.noah.minecraftagent.client.AgentRuntime;
 import com.noah.minecraftagent.client.AgentStatus;
 import net.minecraft.client.MinecraftClient;
@@ -14,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class SpotlightScreen extends Screen {
-    private static final String MOD_VERSION = "V1.1-Beta";
     private static final List<String> HISTORY = new ArrayList<>();
     private final AgentRuntime runtime;
     private TextFieldWidget input;
@@ -114,7 +114,7 @@ public final class SpotlightScreen extends Screen {
             context.drawTextWithShadow(textRenderer, trim(output.replace('\n', ' '), 110), x + 12, y + 76 + (!message.equals(output) ? 18 : 0), 0xFFFFFFFF);
         }
         int footerX = x + boxWidth;
-        context.drawTextWithShadow(textRenderer, Text.literal("v" + MOD_VERSION), footerX - textRenderer.getWidth("v" + MOD_VERSION), y + 124 + 6, 0xFF909090);
+        context.drawTextWithShadow(textRenderer, Text.literal("v" + MinecraftAgentMod.MOD_VERSION), footerX - textRenderer.getWidth("v" + MinecraftAgentMod.MOD_VERSION), y + 124 + 6, 0xFF909090);
         context.drawTextWithShadow(textRenderer, Text.literal("github.com/noah0932"), footerX - textRenderer.getWidth("github.com/noah0932"), y + 124 + 18, 0xFF909090);
         context.drawTextWithShadow(textRenderer, Text.literal("MCAI.noah0932.top"), footerX - textRenderer.getWidth("MCAI.noah0932.top"), y + 124 + 30, 0xFF909090);
     }
