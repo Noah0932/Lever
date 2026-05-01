@@ -3,8 +3,6 @@ package com.noah.minecraftagent.server.bot;
 import com.noah.minecraftagent.common.bot.BotProfile;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

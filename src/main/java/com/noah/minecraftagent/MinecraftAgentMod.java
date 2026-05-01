@@ -23,7 +23,7 @@ import net.minecraft.util.Identifier;
 
 public final class MinecraftAgentMod implements ModInitializer {
     public static final String MOD_ID = "minecraftagent";
-    public static final String MOD_VERSION = "V1.1-Beta";
+    public static final String MOD_VERSION = "V1.1";
     public static final BotSummonerItem BOT_SUMMONER = new BotSummonerItem();
 
     @Override
