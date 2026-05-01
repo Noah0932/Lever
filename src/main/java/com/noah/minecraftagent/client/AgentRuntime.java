@@ -122,17 +122,19 @@ public final class AgentRuntime {
                     @Override
                     public void onToken(String token) {
                         streamed.append(token);
-                        runOnClient(() -> {
-                            publish(AgentStatus.STREAMING, streamed.toString(), streamed.toString(), profile.name, false,
-                                    billing.estimate(profile, request.estimatedInputTokens, TokenEstimator.estimate(streamed.toString())));
-                            return null;
-                        });
+                        if (streamed.length() < 200) {
+                            runOnClient(() -> {
+                                publish(AgentStatus.STREAMING, streamed.toString(), streamed.toString(), profile.name, false,
+                                        billing.estimate(profile, request.estimatedInputTokens, TokenEstimator.estimate(streamed.toString())));
+                                return null;
+                            });
+                        }
                     }
 
                     @Override
                     public void onStatus(String status) {
                         runOnClient(() -> {
-                            publish(AgentStatus.THINKING, status, streamed.toString(), profile.name, false, 0);
+                            publish(AgentStatus.THINKING, status, "", profile.name, false, 0);
                             return null;
                         });
                     }

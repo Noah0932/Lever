@@ -18,7 +18,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -84,43 +86,67 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
         }
 
         StringBuilder text = new StringBuilder();
-        List<AgentToolCall> toolCalls = new ArrayList<>();
-        Usage usage = new Usage(request.estimatedInputTokens, 0, true);
+        Map<Integer, AgentToolCall> toolCallMap = new LinkedHashMap<>();
+        java.util.concurrent.atomic.AtomicReference<Usage> usageRef =
+                new java.util.concurrent.atomic.AtomicReference<>(new Usage(request.estimatedInputTokens, 0, true));
 
-        var lines = response.body().takeWhile(line -> !cancelled.get())
+        response.body()
+                .takeWhile(line -> !cancelled.get())
                 .filter(line -> line.startsWith("data:"))
                 .map(line -> line.substring(5).trim())
                 .takeWhile(data -> !data.equals("[DONE]"))
-                .toList();
-
-        for (String data : lines) {
-            if (cancelled.get()) {
-                throw new IOException("Request cancelled");
-            }
-            JsonObject chunk = gson.fromJson(data, JsonObject.class);
-            JsonArray choices = chunk.has("choices") ? chunk.getAsJsonArray("choices") : new JsonArray();
-            if (!choices.isEmpty()) {
-                JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
-                if (delta != null && delta.has("content") && !delta.get("content").isJsonNull()) {
-                    String token = delta.get("content").getAsString();
-                    text.append(token);
-                    listener.onToken(token);
-                }
-                if (delta != null && delta.has("tool_calls")) {
-                    toolCalls.addAll(parseToolCalls(delta.getAsJsonArray("tool_calls")));
-                }
-            }
-            if (chunk.has("usage") && !chunk.get("usage").isJsonNull()) {
-                usage = parseUsage(chunk.getAsJsonObject("usage"), false, request);
-            }
-        }
+                .forEach(data -> {
+                    JsonObject chunk = gson.fromJson(data, JsonObject.class);
+                    JsonArray choices = chunk.has("choices") ? chunk.getAsJsonArray("choices") : new JsonArray();
+                    if (!choices.isEmpty()) {
+                        JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
+                        if (delta != null) {
+                            if (delta.has("content") && !delta.get("content").isJsonNull()) {
+                                String token = delta.get("content").getAsString();
+                                text.append(token);
+                                listener.onToken(token);
+                            }
+                            if (delta.has("tool_calls")) {
+                                mergeToolCallChunks(toolCallMap, delta.getAsJsonArray("tool_calls"));
+                            }
+                        }
+                    }
+                    if (chunk.has("usage") && !chunk.get("usage").isJsonNull()) {
+                        usageRef.set(parseUsage(chunk.getAsJsonObject("usage"), false, request));
+                    }
+                });
 
         ChatResponse chatResponse = new ChatResponse();
         chatResponse.text = text.toString();
-        chatResponse.toolCalls = toolCalls;
-        chatResponse.usage = usage;
+        chatResponse.toolCalls = new ArrayList<>(toolCallMap.values());
+        chatResponse.usage = usageRef.get();
         chatResponse.providerName = request.profile.name;
         return chatResponse;
+    }
+
+    private void mergeToolCallChunks(Map<Integer, AgentToolCall> map, JsonArray array) {
+        for (JsonElement element : array) {
+            JsonObject object = element.getAsJsonObject();
+            int index = object.has("index") ? object.get("index").getAsInt() : 0;
+            AgentToolCall existing = map.get(index);
+            String id = object.has("id") ? object.get("id").getAsString() : (existing != null ? existing.id() : "");
+            JsonObject function = object.has("function") ? object.getAsJsonObject("function") : null;
+            String name = "";
+            String args = "{}";
+            if (function != null) {
+                name = function.has("name") && !function.get("name").isJsonNull()
+                        ? function.get("name").getAsString() : (existing != null ? existing.name() : "");
+                args = function.has("arguments") && !function.get("arguments").isJsonNull()
+                        ? function.get("arguments").getAsString() : "{}";
+            }
+            if (existing != null) {
+                name = name.isEmpty() ? existing.name() : name;
+                args = args.equals("{}") ? existing.argumentsJson() : existing.argumentsJson() + args;
+                map.put(index, new AgentToolCall(existing.id().isEmpty() ? id : existing.id(), name, args));
+            } else {
+                map.put(index, new AgentToolCall(id, name, args));
+            }
+        }
     }
 
     private HttpClient client(AgentProfile profile) {

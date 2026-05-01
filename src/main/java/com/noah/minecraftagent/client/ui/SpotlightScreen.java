@@ -107,9 +107,11 @@ public final class SpotlightScreen extends Screen {
         Text line = Text.translatable("label.minecraftagent.status", Text.translatable("status.minecraftagent." + status.name().toLowerCase()), cached ? Text.translatable("label.minecraftagent.cached") : Text.literal(""), channel);
         context.drawTextWithShadow(textRenderer, line, x + 12, y + 42, colorForStatus());
         context.drawTextWithShadow(textRenderer, Text.translatable("label.minecraftagent.cost", String.format("%.4f", costCny)), x + 12, y + 58, 0xFFBDBDBD);
-        context.drawTextWithShadow(textRenderer, trim(message, 96), x + 12, y + 76, 0xFFE0E0E0);
+        if (!message.equals(output) && !message.isBlank()) {
+            context.drawTextWithShadow(textRenderer, trim(message, 96), x + 12, y + 76, 0xFFE0E0E0);
+        }
         if (!output.isBlank()) {
-            context.drawTextWithShadow(textRenderer, trim(output.replace('\n', ' '), 110), x + 12, y + 94, 0xFFFFFFFF);
+            context.drawTextWithShadow(textRenderer, trim(output.replace('\n', ' '), 110), x + 12, y + 76 + (!message.equals(output) ? 18 : 0), 0xFFFFFFFF);
         }
         int footerX = x + boxWidth;
         context.drawTextWithShadow(textRenderer, Text.literal("v" + MOD_VERSION), footerX - textRenderer.getWidth("v" + MOD_VERSION), y + 124 + 6, 0xFF909090);
