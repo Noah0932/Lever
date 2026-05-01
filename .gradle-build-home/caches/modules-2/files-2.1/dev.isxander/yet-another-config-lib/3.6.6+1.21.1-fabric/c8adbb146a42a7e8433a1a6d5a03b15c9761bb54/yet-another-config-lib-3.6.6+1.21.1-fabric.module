@@ -1,0 +1,222 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "dev.isxander",
+    "module": "yet-another-config-lib",
+    "version": "3.6.6+1.21.1-fabric",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.12"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.0.21"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.imageio",
+          "module": "imageio-core",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.imageio",
+          "module": "imageio-webp",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.imageio",
+          "module": "imageio-metadata",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.common",
+          "module": "common-lang",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.common",
+          "module": "common-io",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.common",
+          "module": "common-image",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "org.quiltmc.parsers",
+          "module": "json",
+          "version": {
+            "requires": "0.2.1"
+          }
+        },
+        {
+          "group": "org.quiltmc.parsers",
+          "module": "gson",
+          "version": {
+            "requires": "0.2.1"
+          }
+        },
+        {
+          "group": "net.fabricmc.fabric-api",
+          "module": "fabric-api",
+          "version": {
+            "requires": "0.104.0+1.21.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "yet-another-config-lib-3.6.6+1.21.1-fabric.jar",
+          "url": "yet-another-config-lib-3.6.6+1.21.1-fabric.jar",
+          "size": 1116172,
+          "sha512": "b88b213c08919e4624ca88a07a582408a8759a7f2fa7b12086c6bf1087d0e932723d92051d26596fa79f5f8bdaa6090f2d5f87851a8e8628c2eb861aa804de46",
+          "sha256": "0255a43f70ced798c5798a930f3098d9b21d62d6ace5d7a7301f5aca035da9b0",
+          "sha1": "0ffa4ad99a4c3c930f563ec6595c68b7cd31a283",
+          "md5": "b68eee5cc922c8860816cab71460546f"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.0.21"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.imageio",
+          "module": "imageio-core",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.imageio",
+          "module": "imageio-webp",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.imageio",
+          "module": "imageio-metadata",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.common",
+          "module": "common-lang",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.common",
+          "module": "common-io",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "com.twelvemonkeys.common",
+          "module": "common-image",
+          "version": {
+            "requires": "3.12.0"
+          }
+        },
+        {
+          "group": "org.quiltmc.parsers",
+          "module": "json",
+          "version": {
+            "requires": "0.2.1"
+          }
+        },
+        {
+          "group": "org.quiltmc.parsers",
+          "module": "gson",
+          "version": {
+            "requires": "0.2.1"
+          }
+        },
+        {
+          "group": "net.fabricmc.fabric-api",
+          "module": "fabric-api",
+          "version": {
+            "requires": "0.104.0+1.21.1"
+          }
+        },
+        {
+          "group": "net.fabricmc",
+          "module": "fabric-loader",
+          "version": {
+            "requires": "0.16.10"
+          }
+        },
+        {
+          "group": "net.fabricmc",
+          "module": "fabric-language-kotlin",
+          "version": {
+            "requires": "1.12.3+kotlin.2.0.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "yet-another-config-lib-3.6.6+1.21.1-fabric.jar",
+          "url": "yet-another-config-lib-3.6.6+1.21.1-fabric.jar",
+          "size": 1116172,
+          "sha512": "b88b213c08919e4624ca88a07a582408a8759a7f2fa7b12086c6bf1087d0e932723d92051d26596fa79f5f8bdaa6090f2d5f87851a8e8628c2eb861aa804de46",
+          "sha256": "0255a43f70ced798c5798a930f3098d9b21d62d6ace5d7a7301f5aca035da9b0",
+          "sha1": "0ffa4ad99a4c3c930f563ec6595c68b7cd31a283",
+          "md5": "b68eee5cc922c8860816cab71460546f"
+        }
+      ]
+    }
+  ]
+}

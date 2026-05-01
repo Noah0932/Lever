@@ -1,0 +1,32 @@
+﻿Minecraft AI Agent v1.0.3 安装说明
+
+当前可用包：
+- Minecraft-AI-Agent-v1.0.3-mc1.21.1-fabric.jar
+
+适用环境：
+- Minecraft 1.21.1 到 1.21.x（低于 1.22）
+- Fabric Loader 0.16+
+- Java 21
+- Fabric API 对应 Minecraft 1.21.x 的版本
+
+安装步骤：
+1. 关闭游戏。
+2. 删除 mods 文件夹里的旧版 Minecraft-AI-Agent-v1.0.0/v1.0.1/v1.0.2 jar。
+3. 将 Minecraft-AI-Agent-v1.0.3-mc1.21.1-fabric.jar 放入 .minecraft/mods。
+4. 确认 .minecraft/mods 中有 Fabric API。
+5. 启动游戏。
+
+使用：
+- N：打开 AI Agent 配置。
+- V：打开 Spotlight 输入框。
+- 聊天栏输入 .ai <内容>：本地拦截并启动自己的 AI Agent，不发到公共聊天。
+- 服务器安装同 jar 后可用 /ai <内容> 和 /ai ask <玩家> <内容>。
+
+多版本说明：
+- 1.21.1/1.21.x：已支持并已打包。
+- 26.1.x：已预留构建目标，但需要 JDK 25 和 Mojang 官方命名源码迁移，不能与 1.21.1 共用同一个 jar。
+- 详细说明见 COMPATIBILITY.md。
+
+依赖说明：
+- 不需要 YACL / yet_another_config_lib_v3。
+- 不需要 Cloth Config。

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "minecraftagent",
+  "version": "${version}",
+  "name": "Lever - 智械 V2.0",
+  "description": "OpenAI-compatible AI agent with physical entity control, Bot summoning, and safe server execution.",
+  "authors": ["Noah"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.noah.minecraftagent.MinecraftAgentMod"],
+    "client": ["com.noah.minecraftagent.client.MinecraftAgentClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${minecraft_dependency}",
+    "java": "${java_dependency}",
+    "fabric-api": "*"
+  }
+}
