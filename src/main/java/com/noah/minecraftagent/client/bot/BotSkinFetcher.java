@@ -16,6 +16,7 @@ import java.net.URL;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import com.noah.minecraftagent.common.util.SecureLog;
 
 public final class BotSkinFetcher {
     private static final Gson GSON = new Gson();
@@ -60,7 +61,8 @@ public final class BotSkinFetcher {
                     return downloadImage(url);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            SecureLog.error("Failed to download and decode skin for player: " + playerName, exception);
         }
         return null;
     }

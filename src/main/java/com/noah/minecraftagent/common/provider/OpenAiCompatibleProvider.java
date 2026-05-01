@@ -81,7 +81,12 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
     private ChatResponse stream(ChatRequest request, StreamListener listener, AtomicBoolean cancelled) throws IOException, InterruptedException {
         HttpResponse<InputStream> response = client(request.profile).send(buildRequest(request, true), HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            String body = new String(response.body().readAllBytes(), StandardCharsets.UTF_8);
+            String body;
+            try {
+                body = new String(response.body().readAllBytes(), StandardCharsets.UTF_8);
+            } catch (IOException readException) {
+                throw new IOException("HTTP " + response.statusCode() + " (error body unavailable)", readException);
+            }
             throw new IOException("HTTP " + response.statusCode() + ": " + SecureLog.mask(body));
         }
 

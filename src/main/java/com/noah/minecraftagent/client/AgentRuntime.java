@@ -29,6 +29,8 @@ public final class AgentRuntime {
     private final ExecutorService executor = Executors.newFixedThreadPool(4, runnable -> {
         Thread thread = new Thread(runnable, "MinecraftAgent-Worker");
         thread.setDaemon(true);
+        thread.setUncaughtExceptionHandler((t, e) ->
+                SecureLog.error("Uncaught exception in agent worker thread " + t.getName(), e));
         return thread;
     });
     private final ChannelRouter router = new ChannelRouter();

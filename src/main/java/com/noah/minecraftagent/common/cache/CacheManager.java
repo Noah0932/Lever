@@ -62,24 +62,24 @@ public final class CacheManager {
 
     private void evictIfNeeded() {
         try (Stream<Path> files = Files.list(cacheDir)) {
-            long count = files.count();
-            if (count <= MAX_CACHE_FILES) {
+            var jsonFiles = files
+                    .filter(path -> path.toString().endsWith(".json"))
+                    .sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified()))
+                    .toList();
+
+            if (jsonFiles.size() <= MAX_CACHE_FILES) {
                 return;
             }
-        } catch (IOException ignored) {
-            return;
-        }
-        try (Stream<Path> files = Files.list(cacheDir)) {
-            files.filter(path -> path.toString().endsWith(".json"))
-                    .sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified()))
-                    .skip(MAX_CACHE_FILES)
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException ignored) {
-                        }
-                    });
-        } catch (IOException ignored) {
+
+            jsonFiles.stream().skip(MAX_CACHE_FILES).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException exception) {
+                    SecureLog.error("Failed to evict cache file: " + path, exception);
+                }
+            });
+        } catch (IOException exception) {
+            SecureLog.error("Failed to list cache directory for eviction", exception);
         }
     }
 

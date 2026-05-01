@@ -3,6 +3,7 @@ package com.noah.minecraftagent.common.chat;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.noah.minecraftagent.common.util.SecureLog;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -42,16 +43,21 @@ public final class ChatHistoryManager {
 
     public List<ChatEntry> getEntries(String threadId, int offset, int limit) {
         List<ChatEntry> entries = conversations.getOrDefault(threadId, Collections.emptyList());
-        if (offset >= entries.size()) {
-            return Collections.emptyList();
+        synchronized (entries) {
+            if (offset >= entries.size()) {
+                return Collections.emptyList();
+            }
+            int to = Math.min(offset + limit, entries.size());
+            return new ArrayList<>(entries.subList(offset, to));
         }
-        int to = Math.min(offset + limit, entries.size());
-        return new ArrayList<>(entries.subList(offset, to));
     }
 
     public int countEntries(String threadId) {
         List<ChatEntry> entries = conversations.get(threadId);
-        return entries == null ? 0 : entries.size();
+        if (entries == null) return 0;
+        synchronized (entries) {
+            return entries.size();
+        }
     }
 
     public void clearThread(String threadId) {
@@ -64,10 +70,14 @@ public final class ChatHistoryManager {
             for (Map.Entry<String, List<ChatEntry>> entry : conversations.entrySet()) {
                 String safeName = entry.getKey().replaceAll("[^a-zA-Z0-9._-]", "_");
                 Path file = historyDir.resolve(safeName + ".json");
-                String json = GSON.toJson(entry.getValue());
-                Files.writeString(file, json, StandardCharsets.UTF_8);
+                List<ChatEntry> list = entry.getValue();
+                synchronized (list) {
+                    String json = GSON.toJson(list);
+                    Files.writeString(file, json, StandardCharsets.UTF_8);
+                }
             }
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            SecureLog.error("Failed to persist chat history", exception);
         }
     }
 
@@ -82,18 +92,23 @@ public final class ChatHistoryManager {
                     List<ChatEntry> entries = GSON.fromJson(json, ENTRY_LIST_TYPE);
                     if (entries != null && !entries.isEmpty()) {
                         String threadId = entries.get(0).threadId();
-                        List<ChatEntry> list = conversations.computeIfAbsent(threadId, k -> new ArrayList<>());
-                        for (ChatEntry e : entries) {
-                            list.add(e);
-                            while (list.size() > maxEntries) {
-                                list.remove(0);
+                        List<ChatEntry> list = conversations.computeIfAbsent(threadId,
+                                k -> Collections.synchronizedList(new ArrayList<>()));
+                        synchronized (list) {
+                            for (ChatEntry e : entries) {
+                                list.add(e);
+                                while (list.size() > maxEntries) {
+                                    list.remove(0);
+                                }
                             }
                         }
                     }
-                } catch (IOException ignored) {
+                } catch (IOException exception) {
+                    SecureLog.error("Failed to load chat history file", exception);
                 }
             });
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            SecureLog.error("Failed to list chat history directory", exception);
         }
     }
 }
