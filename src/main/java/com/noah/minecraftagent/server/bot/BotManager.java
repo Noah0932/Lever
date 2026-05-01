@@ -7,12 +7,13 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class BotManager {
     private static final BotManager INSTANCE = new BotManager();
-    private final Map<String, BotEntity> botsByUuid = new LinkedHashMap<>();
-    private final Map<String, BotProfile> botProfiles = new LinkedHashMap<>();
-    private final Map<String, List<String>> ownerBots = new LinkedHashMap<>();
+    private final Map<String, BotEntity> botsByUuid = new ConcurrentHashMap<>();
+    private final Map<String, BotProfile> botProfiles = new ConcurrentHashMap<>();
+    private final Map<String, List<String>> ownerBots = new ConcurrentHashMap<>();
     private int botCounter;
 
     private BotManager() {
@@ -30,7 +31,7 @@ public final class BotManager {
         BotEntity bot = new BotEntity(server, owner.getServerWorld(), profile);
         botsByUuid.put(bot.getUuidAsString(), bot);
         botProfiles.put(bot.getUuidAsString(), profile);
-        ownerBots.computeIfAbsent(owner.getUuidAsString(), k -> new ArrayList<>()).add(bot.getUuidAsString());
+        ownerBots.computeIfAbsent(owner.getUuidAsString(), k -> Collections.synchronizedList(new ArrayList<>())).add(bot.getUuidAsString());
         bot.setOwner(owner);
         bot.updateDisplayName();
         bot.getServerWorld().spawnEntity(bot);
@@ -43,7 +44,13 @@ public final class BotManager {
         botsByUuid.remove(uuid);
         BotProfile profile = botProfiles.remove(uuid);
         if (profile != null) {
-            ownerBots.getOrDefault(profile.ownerUuid, Collections.emptyList()).remove(uuid);
+            List<String> ownedBots = ownerBots.get(profile.ownerUuid);
+            if (ownedBots != null) {
+                ownedBots.remove(uuid);
+                if (ownedBots.isEmpty()) {
+                    ownerBots.remove(profile.ownerUuid);
+                }
+            }
         }
         bot.discard();
     }

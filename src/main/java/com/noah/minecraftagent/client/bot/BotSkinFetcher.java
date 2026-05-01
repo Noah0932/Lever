@@ -70,18 +70,17 @@ public final class BotSkinFetcher {
         HttpURLConnection conn = (HttpURLConnection) imgUrl.openConnection();
         conn.setConnectTimeout(10000);
         conn.setReadTimeout(10000);
-        InputStream in = conn.getInputStream();
-        BufferedImage buffered = ImageIO.read(in);
-        in.close();
-        if (buffered == null) return null;
-
-        NativeImage nativeImage = new NativeImage(buffered.getWidth(), buffered.getHeight(), true);
-        for (int y = 0; y < buffered.getHeight(); y++) {
-            for (int x = 0; x < buffered.getWidth(); x++) {
-                nativeImage.setColor(x, y, buffered.getRGB(x, y));
+        try (InputStream in = conn.getInputStream()) {
+            BufferedImage buffered = ImageIO.read(in);
+            if (buffered == null) return null;
+            NativeImage nativeImage = new NativeImage(buffered.getWidth(), buffered.getHeight(), true);
+            for (int y = 0; y < buffered.getHeight(); y++) {
+                for (int x = 0; x < buffered.getWidth(); x++) {
+                    nativeImage.setColor(x, y, buffered.getRGB(x, y));
+                }
             }
+            return nativeImage;
         }
-        return nativeImage;
     }
 
     private static String resolveUuid(String playerName) throws Exception {
@@ -90,7 +89,10 @@ public final class BotSkinFetcher {
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
         if (conn.getResponseCode() != 200) return null;
-        String json = new String(conn.getInputStream().readAllBytes());
+        String json;
+        try (InputStream in = conn.getInputStream()) {
+            json = new String(in.readAllBytes());
+        }
         Map<String, Object> data = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
         }.getType());
         String id = (String) data.get("id");
@@ -104,7 +106,10 @@ public final class BotSkinFetcher {
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
         if (conn.getResponseCode() != 200) return null;
-        String json = new String(conn.getInputStream().readAllBytes());
+        String json;
+        try (InputStream in = conn.getInputStream()) {
+            json = new String(in.readAllBytes());
+        }
         return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
         }.getType());
     }

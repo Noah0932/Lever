@@ -31,6 +31,7 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
 
     @Override
     public CompletableFuture<ChatResponse> complete(ChatRequest request, StreamListener listener, AtomicBoolean cancelled, Executor executor) {
+        int timeoutSeconds = AgentConfigStore.getInstance().config().requestTimeoutSeconds;
         return CompletableFuture.supplyAsync(() -> {
             try {
                 if (request.stream && request.profile.streamingEnabled && request.profile.capabilities.supportsStreaming) {
@@ -51,7 +52,7 @@ public final class OpenAiCompatibleProvider implements ChatProvider {
             } catch (Exception exception) {
                 throw new RuntimeException(SecureLog.mask(exception.getMessage()), exception);
             }
-        }, executor);
+        }, executor).orTimeout(timeoutSeconds + 10, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     private ChatRequest copyForNonStreaming(ChatRequest request) {
