@@ -1,5 +1,6 @@
 package com.noah.minecraftagent.client.ui;
 
+import com.noah.minecraftagent.MinecraftAgentMod;
 import com.noah.minecraftagent.common.config.AgentConfig;
 import com.noah.minecraftagent.common.config.AgentConfigStore;
 import com.noah.minecraftagent.common.config.AgentProfile;
@@ -15,12 +16,12 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 public final class AgentConfigScreen extends Screen {
-    private static final String MOD_VERSION = "dev-1.0.2";
     private final Screen parent;
     private final AgentConfig config;
     private final List<FieldBinding> fields = new ArrayList<>();
     private final List<SectionAnchor> sections = new ArrayList<>();
     private AgentProfile profile;
+    private int scrollOffset;
 
     public AgentConfigScreen(Screen parent) {
         super(Text.translatable("screen.minecraftagent.config.title"));
@@ -63,14 +64,18 @@ public final class AgentConfigScreen extends Screen {
         addField("field.minecraftagent.exchange", Double.toString(profile.usdToCny), fieldX, y, value -> profile.usdToCny = parseDouble(value, profile.usdToCny)); y += 24;
         addField("field.minecraftagent.daily_limit", Double.toString(profile.dailyLimitCny), fieldX, y, value -> profile.dailyLimitCny = parseDouble(value, profile.dailyLimitCny)); y += 30;
 
-        int buttonX = x + 14;
-        addDrawableChild(toggle("toggle.minecraftagent.streaming", profile.streamingEnabled, buttonX, y, value -> profile.streamingEnabled = value)); buttonX += 116;
-        addDrawableChild(toggle("toggle.minecraftagent.vision", profile.visionEnabled, buttonX, y, value -> profile.visionEnabled = value)); buttonX += 116;
-        addDrawableChild(toggle("toggle.minecraftagent.tools", profile.toolCallsEnabled, buttonX, y, value -> profile.toolCallsEnabled = value)); buttonX += 116;
-        addDrawableChild(toggle("toggle.minecraftagent.cache", profile.cacheEnabled, buttonX, y, value -> profile.cacheEnabled = value)); buttonX += 116;
-        addDrawableChild(toggle("toggle.minecraftagent.lock", profile.locked, buttonX, y, value -> profile.locked = value)); buttonX += 116;
-        addDrawableChild(toggle("toggle.minecraftagent.confirm", config.delegationConfirmRequired, buttonX, y, value -> config.delegationConfirmRequired = value));
-        y += 28;
+        int toggleY = y;
+        int gap = 116;
+        for (int row = 0; row < 2; row++) {
+            int bx = x + 14;
+            for (int col = 0; col < 3; col++) {
+                int idx = row * 3 + col;
+                if (idx >= 6) break;
+                addToggle(idx, bx, toggleY + row * 24);
+                bx += gap;
+            }
+        }
+        y = toggleY + 52;
 
         addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.new_profile"), button -> {
             saveFields();
@@ -104,13 +109,25 @@ public final class AgentConfigScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.translatable("button.minecraftagent.cancel"), button -> close()).dimensions(x + panelWidth - 110, y, 96, 20).build());
     }
 
+    private void addToggle(int index, int x, int y) {
+        switch (index) {
+            case 0 -> addDrawableChild(toggle("toggle.minecraftagent.streaming", profile.streamingEnabled, x, y, v -> profile.streamingEnabled = v));
+            case 1 -> addDrawableChild(toggle("toggle.minecraftagent.vision", profile.visionEnabled, x, y, v -> profile.visionEnabled = v));
+            case 2 -> addDrawableChild(toggle("toggle.minecraftagent.tools", profile.toolCallsEnabled, x, y, v -> profile.toolCallsEnabled = v));
+            case 3 -> addDrawableChild(toggle("toggle.minecraftagent.cache", profile.cacheEnabled, x, y, v -> profile.cacheEnabled = v));
+            case 4 -> addDrawableChild(toggle("toggle.minecraftagent.lock", profile.locked, x, y, v -> profile.locked = v));
+            case 5 -> addDrawableChild(toggle("toggle.minecraftagent.confirm", config.delegationConfirmRequired, x, y, v -> config.delegationConfirmRequired = v));
+        }
+    }
+
     private int addSection(String key, int panelX, int fieldX, int fieldWidth, int y) {
         sections.add(new SectionAnchor(key, panelX, y));
         return y + 16;
     }
 
     private void addField(String labelKey, String value, int x, int y, Consumer<String> setter) {
-        TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, Math.min(560, width - x - 24), 18, Text.translatable(labelKey));
+        int fieldWidth = Math.max(80, Math.min(560, width - x - 24));
+        TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, fieldWidth, 18, Text.translatable(labelKey));
         field.setText(value == null ? "" : value);
         field.setMaxLength(4096);
         fields.add(new FieldBinding(labelKey, field, setter));
@@ -136,19 +153,13 @@ public final class AgentConfigScreen extends Screen {
     }
 
     private int parseInt(String value, int fallback) {
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException exception) {
-            return fallback;
-        }
+        try { return Integer.parseInt(value.trim()); }
+        catch (NumberFormatException ex) { return fallback; }
     }
 
     private double parseDouble(String value, double fallback) {
-        try {
-            return Double.parseDouble(value.trim());
-        } catch (NumberFormatException exception) {
-            return fallback;
-        }
+        try { return Double.parseDouble(value.trim()); }
+        catch (NumberFormatException ex) { return fallback; }
     }
 
     @Override
@@ -162,11 +173,14 @@ public final class AgentConfigScreen extends Screen {
         int panelWidth = Math.min(760, width - 40);
         int x = (width - panelWidth) / 2;
         int top = 24;
-        int bottom = Math.min(height - 18, 456);
+        int contentBottom = findContentBottom();
+        int bottom = Math.min(contentBottom + 8, height - 10);
+
         super.render(context, mouseX, mouseY, delta);
-        context.fill(x, top, x + panelWidth, bottom, 0xDD000000);
-        context.drawBorder(x, top, panelWidth, bottom - top, 0xFF909090);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.minecraftagent.config.title"), width / 2, top + 8, 0xFFFFFFFF);
+        context.fill(x, top, x + panelWidth, bottom, 0xCC1E1E24);
+        context.drawBorder(x, top, panelWidth, bottom - top, 0xFF606060);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Lever " + MinecraftAgentMod.MOD_VERSION).append(Text.literal("  ⚙")).append(Text.translatable("screen.minecraftagent.config.title")), width / 2, top + 8, 0xFFFFFFFF);
+
         for (SectionAnchor section : sections) {
             context.drawTextWithShadow(textRenderer, Text.translatable(section.key), section.x, section.y + 4, 0xFFFFE082);
         }
@@ -174,10 +188,15 @@ public final class AgentConfigScreen extends Screen {
             int labelX = Math.max(x + 10, field.widget.getX() - 156);
             context.drawTextWithShadow(textRenderer, Text.translatable(field.labelKey), labelX, field.widget.getY() + 5, 0xFFFFE040);
         }
-        int footerX = x + panelWidth;
-        context.drawTextWithShadow(textRenderer, Text.literal("v" + MOD_VERSION), footerX - textRenderer.getWidth("v" + MOD_VERSION) - 4, bottom - 8, 0xFF707070);
-        context.drawTextWithShadow(textRenderer, Text.literal("github.com/noah0932"), footerX - textRenderer.getWidth("github.com/noah0932") - 4, bottom + 6, 0xFF707070);
-        context.drawTextWithShadow(textRenderer, Text.literal("MCAI.noah0932.top"), footerX - textRenderer.getWidth("MCAI.noah0932.top") - 4, bottom + 20, 0xFF707070);
+    }
+
+    private int findContentBottom() {
+        int max = 400;
+        for (FieldBinding f : fields) {
+            int b = f.widget.getY() + 22;
+            if (b > max) max = b;
+        }
+        return max;
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.noah.minecraftagent.common.bot.BotNetworking;
 import com.noah.minecraftagent.common.bot.BotProfile;
 import com.noah.minecraftagent.common.bot.payload.BotListPayload;
 import com.noah.minecraftagent.common.bot.payload.BotMessagePayload;
+import com.noah.minecraftagent.common.chat.ChatHistoryManager;
 import com.noah.minecraftagent.common.config.AgentConfig;
 import com.noah.minecraftagent.common.config.AgentConfigStore;
 import com.noah.minecraftagent.common.network.AgentNetworking;
@@ -21,12 +22,14 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,8 +88,13 @@ public final class MinecraftAgentClient implements ClientModInitializer {
         if (MinecraftClient.getInstance().player != null) {
             MinecraftClient.getInstance().player.sendMessage(Text.literal("[Bot] " + payload.botName() + ": " + payload.message()), false);
         }
+        Path dir = FabricLoader.getInstance().getConfigDir().resolve("ai_agent").resolve("chat_history");
+        ChatHistoryManager hm = new ChatHistoryManager(dir);
+        hm.load();
+        hm.addEntry(payload.botUuid(), "bot", payload.message());
+        hm.persist();
         if (botChatScreen != null) {
-            botChatScreen.addMessage(payload.botName() + ": " + payload.message());
+            botChatScreen.addMessage(payload.botUuid(), payload.botName(), payload.message());
         }
     }
 
